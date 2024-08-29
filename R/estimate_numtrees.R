@@ -4,7 +4,7 @@
 #'
 #' @param optRF_object An optRF_object, either the result from the \link{opt_importance} or the \link{opt_prediction} function.
 #' @param measure A character string indicating which stability measure is to be analysed. One of "selection" (default, analyses selection stability), "prediction" (analyses prediction stability) or "importance" (analyses variable importance stability).
-#' @param for_stability Either a single value or a vector containing multiple values containing the required stability.
+#' @param for_stability Either a single stability value or a vector containing multiple stability values for which the number of trees should be estimated.
 #'
 #' @return A data frame summarising the estimated stability and run time in seconds for the given num.trees values.
 #'
@@ -21,7 +21,7 @@
 #' @export
 
 
-estimate_numtrees = function(optRF_object, measure = c("selection","importance","prediction"), for_stability){
+estimate_numtrees = function(optRF_object, measure = c("selection","importance","prediction"), for_stability = 0.95){
 
   if(!(is(optRF_object, "opt_prediction_object")) & !(is(optRF_object, "opt_importance_object"))){
     stop("Invalid object was inserted. The inserted object must be the result from the opt_prediction or opt_importance function.")
@@ -33,6 +33,10 @@ estimate_numtrees = function(optRF_object, measure = c("selection","importance",
   }
   if(length(measure) != 1 || !(measure %in% c("selection","importance","prediction"))){
     stop("Invalid input for measure. The measure must be either \"selection\", \"importance\", or \"prediction\".")
+  }
+
+  if(!is.numeric(for_stability) | any(for_stability < 0)){
+    stop("The for_stability parameter needs to be a vector of positive numbers")
   }
 
   TwoPLmodel.inv = function(for_stability, p1, p2){

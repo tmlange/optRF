@@ -22,6 +22,7 @@
 #' }
 #'
 #' @export
+#' @importFrom methods is
 #' @importFrom grDevices rgb
 #' @importFrom graphics abline points
 

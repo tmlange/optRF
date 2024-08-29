@@ -20,11 +20,15 @@
 #' @export
 
 
-estimate_stability = function(optRF_object, with_num.trees=NULL){
+estimate_stability = function(optRF_object, with_num.trees = c(1000, 5000, 10000, 50000, 100000)){
 
   # Check if the correct object was inserted
   if(!(is(optRF_object, "opt_prediction_object")) & !(is(optRF_object, "opt_importance_object"))){
     stop("Invalid object was inserted. The inserted object must be the result from the opt_prediction or opt_importance function.")
+  }
+
+  if(!is.numeric(with_num.trees) | any(with_num.trees < 1)){
+    stop("The with_num.trees parameter needs to be a vector of positive numbers")
   }
 
   TwoPLmodel = function(with_num.trees, p1, p2){
@@ -62,12 +66,7 @@ estimate_stability = function(optRF_object, with_num.trees=NULL){
     }
 
   }
-
-
-  # estimate RF stability for importance estimation
-  if(is(optRF_object, "opt_importance_object")){
-
-
+  else{  # estimate RF stability for importance estimation
     if(nrow(optRF_object$model.parameters) == 2){ # If a model for variable importance and selection could be produced, produce a estimate both measures
       D_est = data.frame(num.trees = with_num.trees,
                          VI_stability = TwoPLmodel(with_num.trees, optRF_object$model.parameters[1,1], optRF_object$model.parameters[1,2]),
