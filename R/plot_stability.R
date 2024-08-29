@@ -22,6 +22,8 @@
 #' }
 #'
 #' @export
+#' @importFrom grDevices rgb
+#' @importFrom graphics abline points
 
 plot_stability = function(optRF_object, measure = c("selection","importance","prediction"),
                           from = 0, to = 100000, add.recommendation = TRUE,

@@ -24,8 +24,10 @@
 #' }
 #'
 #' @export
+#' @importFrom irr icc kappam.fleiss
+#' @importFrom graphics points
 #' @importFrom ranger ranger
-#' @importFrom minpack.lm nlsLM
+#' @importFrom minpack.lm nlsLM nls.lm.control
 
 
 

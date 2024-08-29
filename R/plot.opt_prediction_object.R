@@ -1,4 +1,5 @@
 #' @export
+#' @importFrom graphics points
 
 plot.opt_prediction_object = function(optRF_object, ...){
   estimate_stability = function(at, p1, p2){
