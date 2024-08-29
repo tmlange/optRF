@@ -24,9 +24,11 @@ A data frame summarising the estimated stability and run time in seconds for the
 Estimate the number of trees required to achieve certain stability of random forest
 }
 \examples{
+\dontrun{
 data(SNPdata)
 set.seed(123)
 result_optpred = opt_prediction(y = SNPdata[,1], X=SNPdata[,-1]) # optimise random forest
 estimate_numtrees(result_optpred, measure="prediction", for_stability=0.95)
+}
 
 }

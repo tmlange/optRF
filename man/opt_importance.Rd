@@ -45,9 +45,11 @@ An opt_importance_object containing the recommended number of trees, based on wh
 Optimising random forest for estimating the importance of variables by calculating the variable importance stability with certain numbers of trees
 }
 \examples{
+\dontrun{
 data(SNPdata)
 set.seed(123)
 result_optimp = opt_importance(y = SNPdata[,1], X=SNPdata[,-1]) # optimise random forest
 summary(result_optimp)
+}
 
 }

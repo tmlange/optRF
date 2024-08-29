@@ -18,10 +18,12 @@
 #' @return An opt_prediction_object containing the recommended number of trees, based on which measure the recommendation was given (prediction or selection), a matrix summarising the estimated stability and computation time of a random forest with the recommended numbers of trees, a matrix containing the calculated stability and computation time for the analysed numbers of trees, and the parameters used to model the relationship between stability and numbers of trees.
 #'
 #' @examples
+#' \dontrun{
 #' data(SNPdata)
 #' set.seed(123)
 #' result_optpred = opt_prediction(y = SNPdata[,1], X=SNPdata[,-1]) # optimise random forest
 #' summary(result_optpred)
+#' }
 #'
 #' @export
 #' @importFrom ranger ranger

@@ -8,11 +8,15 @@
 #' @return A data frame summarising the estimated stability and run time in seconds for the given num.trees values.
 #'
 #' @examples
+#' \dontrun{
 #' data(SNPdata)
 #' set.seed(123)
 #' result_optpred = opt_prediction(y = SNPdata[,1], X=SNPdata[,-1]) # optimise random forest
 #' estimate_stability(result_optpred, with_num.trees=c(1000, 5000, 10000, 50000, 100000))
+#' }
 #'
+#' @importFrom methods is
+#' @importFrom stats lm
 #' @export
 
 

@@ -51,9 +51,11 @@ An opt_prediction_object containing the recommended number of trees, based on wh
 Optimising random forest predictions by calculating the prediction stability with certain numbers of trees
 }
 \examples{
+\dontrun{
 data(SNPdata)
 set.seed(123)
 result_optpred = opt_prediction(y = SNPdata[,1], X=SNPdata[,-1]) # optimise random forest
 summary(result_optpred)
+}
 
 }
