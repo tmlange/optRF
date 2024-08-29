@@ -43,13 +43,12 @@ estimate_numtrees = function(optRF_object, measure = c("selection","importance",
     p1/((1/for_stability)-1)^p2
   }
   estimate_runtime = function(at, p1, p2){
-    p1 + at*p2
+    as.numeric(p1 + at*p2)
   }
   runtime_model = lm(optRF_object$result.table$run.time ~ optRF_object$result.table$num.trees_values)
 
   # estimate RF stability for prediction estimation
   if(is(optRF_object, "opt_prediction_object")){
-
     # If the measure was set to be importance, this will not work
     if(measure == "importance"){
       stop("The variable importance stability cannot be plotted with an object created with the function opt_prediction.\nPlease set the measure argument to either \"prediction\" or \"selection\". \n")
@@ -89,11 +88,7 @@ estimate_numtrees = function(optRF_object, measure = c("selection","importance",
       return(D_est)
     }
   }
-
-
-  # estimate RF stability for importance estimation
-  if(is(optRF_object, "opt_importance_object")){
-
+  else{ # estimate RF stability for importance estimation
     # If the measure was set to be importance, this will not work
     if(measure == "prediction"){
       stop("The prediction stability cannot be plotted with an object created with the function opt_importance.\nPlease set the measure argument to either \"importance\" or \"selection\". \n")

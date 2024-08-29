@@ -35,7 +35,7 @@ estimate_stability = function(optRF_object, with_num.trees = c(1000, 5000, 10000
     1 / (1+(p1/with_num.trees)^p2)
   }
   estimate_runtime = function(with_num.trees, p1, p2){
-    p1 + with_num.trees*p2
+    as.numeric(p1 + with_num.trees*p2)
   }
   runtime_model = lm(optRF_object$result.table$run.time ~ optRF_object$result.table$num.trees_values)
 
@@ -47,7 +47,6 @@ estimate_stability = function(optRF_object, with_num.trees = c(1000, 5000, 10000
                          prediction_stability = TwoPLmodel(with_num.trees, optRF_object$model.parameters[1,1], optRF_object$model.parameters[1,2]),
                          selection_stability = TwoPLmodel(with_num.trees, optRF_object$model.parameters[2,1], optRF_object$model.parameters[2,2]),
                          run_time = estimate_runtime(with_num.trees, runtime_model$coefficients[1], runtime_model$coefficients[2]))
-
       return(D_est)
     }
 
