@@ -4,7 +4,10 @@
 \alias{estimate_stability}
 \title{Estimate the stability of random forest}
 \usage{
-estimate_stability(optRF_object, with_num.trees = NULL)
+estimate_stability(
+  optRF_object,
+  with_num.trees = c(1000, 5000, 10000, 50000, 1e+05)
+)
 }
 \arguments{
 \item{optRF_object}{An optRF_object, either the result from the \link{opt_importance} or the \link{opt_prediction} function.}
