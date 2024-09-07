@@ -36,10 +36,12 @@ A plot showing the estimated stability of random forest for the given num.trees 
 Plot the estimated stability of random forest against certain numbers of trees
 }
 \examples{
+\dontrun{
 data(SNPdata)
 set.seed(123)
 result_optpred = opt_prediction(y = SNPdata[,1], X=SNPdata[,-1]) # optimise random forest
 plot_stability(result_optpred, measure = "prediction", add.recommendation = TRUE, add=FALSE)
 plot_stability(result_optpred, measure = "selection",  add.recommendation = FALSE, add=TRUE)
+}
 
 }

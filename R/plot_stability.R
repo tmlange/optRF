@@ -13,13 +13,18 @@
 #' @return A plot showing the estimated stability of random forest for the given num.trees values.
 #'
 #' @examples
+#' \dontrun{
 #' data(SNPdata)
 #' set.seed(123)
 #' result_optpred = opt_prediction(y = SNPdata[,1], X=SNPdata[,-1]) # optimise random forest
 #' plot_stability(result_optpred, measure = "prediction", add.recommendation = TRUE, add=FALSE)
 #' plot_stability(result_optpred, measure = "selection",  add.recommendation = FALSE, add=TRUE)
+#' }
 #'
 #' @export
+#' @importFrom methods is
+#' @importFrom grDevices rgb
+#' @importFrom graphics abline points
 
 plot_stability = function(optRF_object, measure = c("selection","importance","prediction"),
                           from = 0, to = 100000, add.recommendation = TRUE,
@@ -42,117 +47,52 @@ plot_stability = function(optRF_object, measure = c("selection","importance","pr
     1 / (1+(p1/at)^p2)
   }
 
+  visualiseStability = function(param1, param2, ...){
+    if(add == FALSE){
+      plot(TwoPLmodel(plot_seq, param1, param2) ~ plot_seq,
+           type="l", ylab="Random forest stability", xlab="number of trees", main="Relationship between\n random forest stability and number of trees",
+           cex.axis=1.2, cex.lab=1.2, cex.main=1.2, lwd=1.2, ...)
+    }
+    else{
+      points(TwoPLmodel(plot_seq, param1, param2) ~ plot_seq,
+             type="l", lwd=1.2, ...)
+    }
+    if(add.recommendation == TRUE & !is.null(optRF_object$recommendation)){
+      abline(v = optRF_object$recommendation, col=rgb(1, 0, 0, 0.5))
+      abline(h = TwoPLmodel(optRF_object$recommendation, param1, param2),
+             col=rgb(1, 0, 0, 0.5))
+    }
+  }
+
   plot_seq = seq(from, to, 1)
 
   # If the object is an opt_prediction_object
   if(is(optRF_object, "opt_prediction_object")){
-
     # If the measure was set to be importance, this will not work
     if(measure == "importance"){
       stop("The variable importance stability cannot be plotted with an object created with the function opt_prediction.\nPlease set the measure argument to either \"prediction\" or \"selection\". \n")
     }
-
+    # If no model could be produced, give an error message
+    if(nrow(optRF_object$model.parameters) == 0){
+      stop("The function opt_prediction could not model the relationship between the number of trees and prediction or selection stability.\n")
+    }
     # If the measure was set to be prediction, plot the prediction stability
     if(measure == "prediction"){
-
-      if(add == FALSE){
-        if(nrow(optRF_object$model.parameters) == 2 || # If a model for prediction and selection could be produced, plotting is not a problem
-           (nrow(optRF_object$model.parameters) == 1 && row.names(optRF_object$model.parameters) == "Prediction_stability")){ # If only one model could be produced, it must be the prediction model
-          plot(TwoPLmodel(plot_seq, optRF_object$model.parameters[1,1], optRF_object$model.parameters[1,2]) ~ plot_seq,
-               type="l", ylab="Random forest stability", xlab="number of trees", main="Relationship between\n random forest stability and number of trees",
-               cex.axis=1.2, cex.lab=1.2, cex.main=1.2, lwd=1.2, ...)
-          if(add.recommendation == TRUE & !is.null(optRF_object$recommendation)){
-            abline(v = optRF_object$recommendation, col=rgb(1, 0, 0, 0.5))
-            abline(h = TwoPLmodel(optRF_object$recommendation, optRF_object$model.parameters[1,1], optRF_object$model.parameters[1,2]),
-                   col=rgb(1, 0, 0, 0.5))
-          }
-          return()
-        }
-        if(nrow(optRF_object$model.parameters) == 0){ # If no model could be produced, give an error message
-          stop("The function opt_prediction could not model the relationship between the number of trees and prediction or selection stability.\n")
-        }
-        else{
-          stop("The function opt_prediction could not model the relationship between the number of trees and the prediction stability.\n")
-        }
+      if(nrow(optRF_object$model.parameters) == 2 || # If a model for prediction and selection could be produced, plotting is not a problem
+         (nrow(optRF_object$model.parameters) == 1 && row.names(optRF_object$model.parameters) == "Prediction_stability")){ # If only one model could be produced, it must be the prediction model
+        visualiseStability(optRF_object$model.parameters[1,1], optRF_object$model.parameters[1,2], ...)
       }
-
-      if(add == TRUE){
-        if(nrow(optRF_object$model.parameters) == 2 || # If a model for prediction and selection could be produced, plotting is not a problem
-           (nrow(optRF_object$model.parameters) == 1 && row.names(optRF_object$model.parameters) == "Prediction_stability")){ # If only one model could be produced, it must be the prediction model
-          points(TwoPLmodel(plot_seq, optRF_object$model.parameters[1,1], optRF_object$model.parameters[1,2]) ~ plot_seq,
-                 type="l", lwd=1.2, ...)
-          if(add.recommendation == TRUE & !is.null(optRF_object$recommendation)){
-            abline(v = optRF_object$recommendation, col=rgb(1, 0, 0, 0.5))
-            abline(h = TwoPLmodel(optRF_object$recommendation, optRF_object$model.parameters[1,1], optRF_object$model.parameters[1,2]),
-                   col=rgb(1, 0, 0, 0.5))
-          }
-          return()
-        }
-        if(nrow(optRF_object$model.parameters) == 0){ # If no model could be produced, give an error message
-          stop("The function opt_prediction could not model the relationship between the number of trees and prediction or selection stability.\n")
-        }
-        else{
-          stop("The function opt_prediction could not model the relationship between the number of trees and the prediction stability.\n")
-        }
+      else{
+        stop("The function opt_prediction could not model the relationship between the number of trees and the prediction stability.\n")
       }
     }
-
-    # If the measure was set to be selection, plot the selection stability
-    if(measure == "selection"){
-      if(add == FALSE){
-        if(nrow(optRF_object$model.parameters) == 2){ # If a model for prediction and selection could be produced, plotting is not a problem
-          plot(TwoPLmodel(plot_seq, optRF_object$model.parameters[2,1], optRF_object$model.parameters[2,2]) ~ plot_seq,
-               type="l", ylab="Random forest stability", xlab="number of trees", main="Relationship between\n random forest stability and number of trees",
-               cex.axis=1.2, cex.lab=1.2, cex.main=1.2, lwd=1.2, ...)
-          if(add.recommendation == TRUE & !is.null(optRF_object$recommendation)){
-            abline(v = optRF_object$recommendation, col=rgb(1, 0, 0, 0.5))
-            abline(h = TwoPLmodel(optRF_object$recommendation, optRF_object$model.parameters[2,1], optRF_object$model.parameters[2,2]),
-                   col=rgb(1, 0, 0, 0.5))
-          }
-          return()
-        }
-        if((nrow(optRF_object$model.parameters) == 1 && row.names(optRF_object$model.parameters) == "Selection_stability")){ # If only one model could be produced, it must be the selection model
-          plot(TwoPLmodel(plot_seq, optRF_object$model.parameters[1,1], optRF_object$model.parameters[1,2]) ~ plot_seq,
-               type="l", ylab="Random forest stability", xlab="number of trees", main="Relationship between\n random forest stability and number of trees",
-               cex.axis=1.2, cex.lab=1.2, cex.main=1.2, lwd=1.2, ...)
-          if(add.recommendation == TRUE & !is.null(optRF_object$recommendation)){
-            abline(v = optRF_object$recommendation, col=rgb(1, 0, 0, 0.5))
-            abline(h = TwoPLmodel(optRF_object$recommendation, optRF_object$model.parameters[1,1], optRF_object$model.parameters[1,2]),
-                   col=rgb(1, 0, 0, 0.5))
-          }
-          return()
-        }
-        if(nrow(optRF_object$model.parameters) == 0){ # If no model could be produced, give an error message
-          stop("The function opt_prediction could not model the relationship between number of trees and prediction or selection stability.\n")
-        }
-        else{
-          stop("The function opt_prediction could not model the relationship between number of trees and the selection stability.\n")
-        }
+    else{ # If the measure was set to be selection, plot the selection stability
+      if(nrow(optRF_object$model.parameters) == 2){ # If a model for prediction and selection could be produced, plotting is not a problem
+        visualiseStability(optRF_object$model.parameters[2,1], optRF_object$model.parameters[2,2], ...)
       }
-      if(add == TRUE){
-
-        if(nrow(optRF_object$model.parameters) == 2 ){ # If a model for prediction and selection could be produced, plotting is not a problem
-          points(TwoPLmodel(plot_seq, optRF_object$model.parameters[2,1], optRF_object$model.parameters[2,2]) ~ plot_seq,
-                 type="l", lwd=1.2, ...)
-          if(add.recommendation == TRUE & !is.null(optRF_object$recommendation)){
-            abline(v = optRF_object$recommendation, col=rgb(1, 0, 0, 0.5))
-            abline(h = TwoPLmodel(optRF_object$recommendation, optRF_object$model.parameters[2,1], optRF_object$model.parameters[2,2]),
-                   col=rgb(1, 0, 0, 0.5))
-          }
-          return()
-        }
-        if((nrow(optRF_object$model.parameters) == 1 && row.names(optRF_object$model.parameters) == "Selection_stability")){ # If only one model could be produced, it must be the selection model
-          points(TwoPLmodel(plot_seq, optRF_object$model.parameters[1,1], optRF_object$model.parameters[1,2]) ~ plot_seq,
-                 type="l", lwd=1.2, ...)
-          if(add.recommendation == TRUE & !is.null(optRF_object$recommendation)){
-            abline(v = optRF_object$recommendation, col=rgb(1, 0, 0, 0.5))
-            abline(h = TwoPLmodel(optRF_object$recommendation, optRF_object$model.parameters[1,1], optRF_object$model.parameters[1,2]),
-                   col=rgb(1, 0, 0, 0.5))
-          }
-          return()
-        }
-        if(nrow(optRF_object$model.parameters) == 0){ # If no model could be produced, give an error message
-          stop("The function opt_prediction could not model the relationship between number of trees and prediction or selection stability.\n")
+      else{
+        if(row.names(optRF_object$model.parameters) == "Selection_stability"){ # If only one model could be produced, it must be the selection model
+          visualiseStability(optRF_object$model.parameters[1,1], optRF_object$model.parameters[1,2], ...)
         }
         else{
           stop("The function opt_prediction could not model the relationship between number of trees and the selection stability.\n")
@@ -160,116 +100,31 @@ plot_stability = function(optRF_object, measure = c("selection","importance","pr
       }
     }
   }
-
-
-  # If the object is an opt_importance_object
-  if(is(optRF_object, "opt_importance_object")){
-
+  else{ # If the object is an opt_importance_object
     # If the measure was set to be prediction, this will not work
     if(measure == "prediction"){
       stop("The prediction stability cannot be plotted with an object created with the function opt_importance.\nPlease set the measure argument to either \"importance\" or \"selection\". \n")
     }
-
+    if(nrow(optRF_object$model.parameters) == 0){ # If no model could be produced, give an error message
+      stop("The function opt_importance could not model the relationship between number of trees and variable importance or selection stability.\n")
+    }
     # If the measure was set to be importance, plot the importance stability
     if(measure == "importance"){
-      if(add == FALSE){
-        if(nrow(optRF_object$model.parameters) == 2 || # If a model for VI and selection could be produced, plotting is not a problem
-           (nrow(optRF_object$model.parameters) == 1 && row.names(optRF_object$model.parameters) == "VI_stability")){ # If only one model could be produced, it must be the VI model
-          plot(TwoPLmodel(plot_seq, optRF_object$model.parameters[1,1], optRF_object$model.parameters[1,2]) ~ plot_seq,
-               type="l", ylab="Random forest stability", xlab="number of trees", main="Relationship between\n random forest stability and number of trees",
-               cex.axis=1.2, cex.lab=1.2, cex.main=1.2, lwd=1.2, ...)
-          if(add.recommendation == TRUE & !is.null(optRF_object$recommendation)){
-            abline(v = optRF_object$recommendation, col=rgb(1, 0, 0, 0.5))
-            abline(h = TwoPLmodel(optRF_object$recommendation, optRF_object$model.parameters[1,1], optRF_object$model.parameters[1,2]),
-                   col=rgb(1, 0, 0, 0.5))
-          }
-          return()
-        }
-        if(nrow(optRF_object$model.parameters) == 0){ # If no model could be produced, give an error message
-          stop("The function opt_importance could not model the relationship between number of trees and variable importance or selection stability.\n")
-        }
-        else{
-          stop("The function opt_importance could not model the relationship between number of trees and the variable importance stability.\n")
-        }
+      if(nrow(optRF_object$model.parameters) == 2 || # If a model for VI and selection could be produced, plotting is not a problem
+         (nrow(optRF_object$model.parameters) == 1 && row.names(optRF_object$model.parameters) == "VI_stability")){ # If only one model could be produced, it must be the VI model
+        visualiseStability(optRF_object$model.parameters[1,1], optRF_object$model.parameters[1,2], ...)
       }
-
-      if(add == TRUE){
-        if(nrow(optRF_object$model.parameters) == 2 || # If a model for VI and selection could be produced, plotting is not a problem
-           (nrow(optRF_object$model.parameters) == 1 && row.names(optRF_object$model.parameters) == "VI_stability")){ # If only one model could be produced, it must be the VI model
-          points(TwoPLmodel(plot_seq, optRF_object$model.parameters[1,1], optRF_object$model.parameters[1,2]) ~ plot_seq,
-                 type="l", lwd=1.2, ...)
-          if(add.recommendation == TRUE & !is.null(optRF_object$recommendation)){
-            abline(v = optRF_object$recommendation, col=rgb(1, 0, 0, 0.5))
-            abline(h = TwoPLmodel(optRF_object$recommendation, optRF_object$model.parameters[1,1], optRF_object$model.parameters[1,2]),
-                   col=rgb(1, 0, 0, 0.5))
-          }
-          return()
-        }
-        if(nrow(optRF_object$model.parameters) == 0){ # If no model could be produced, give an error message
-          stop("The function opt_importance could not model the relationship between number of trees and variable importance or selection stability.\n")
-        }
-        else{
-          stop("The function opt_importance could not model the relationship between number of trees and the variable importance stability.\n")
-        }
+      else{
+        stop("The function opt_importance could not model the relationship between number of trees and the variable importance stability.\n")
       }
     }
-
-    # If the measure was set to be selection, plot the selection stability
-    if(measure == "selection"){
-      if(add == FALSE){
-        if(nrow(optRF_object$model.parameters) == 2 ){ # If a model for VI and selection could be produced, plotting is not a problem
-          plot(TwoPLmodel(plot_seq, optRF_object$model.parameters[2,1], optRF_object$model.parameters[2,2]) ~ plot_seq,
-               type="l", ylab="Random forest stability", xlab="number of trees", main="Relationship between\n random forest stability and number of trees",
-               cex.axis=1.2, cex.lab=1.2, cex.main=1.2, lwd=1.2, ...)
-          if(add.recommendation == TRUE & !is.null(optRF_object$recommendation)){
-            abline(v = optRF_object$recommendation, col=rgb(1, 0, 0, 0.5))
-            abline(h = TwoPLmodel(optRF_object$recommendation, optRF_object$model.parameters[2,1], optRF_object$model.parameters[2,2]),
-                   col=rgb(1, 0, 0, 0.5))
-          }
-          return()
-        }
-        if(nrow(optRF_object$model.parameters) == 1 && row.names(optRF_object$model.parameters) == "Selection_stability"){ # If only one model could be produced, it must be the selection model
-          plot(TwoPLmodel(plot_seq, optRF_object$model.parameters[2,1], optRF_object$model.parameters[2,2]) ~ plot_seq,
-               type="l", ylab="Random forest stability", xlab="number of trees", main="Relationship between\n random forest stability and number of trees",
-               cex.axis=1.2, cex.lab=1.2, cex.main=1.2, lwd=1.2, ...)
-          if(add.recommendation == TRUE & !is.null(optRF_object$recommendation)){
-            abline(v = optRF_object$recommendation, col=rgb(1, 0, 0, 0.5))
-            abline(h = TwoPLmodel(optRF_object$recommendation, optRF_object$model.parameters[2,1], optRF_object$model.parameters[2,2]),
-                   col=rgb(1, 0, 0, 0.5))
-          }
-          return()
-        }
-        if(nrow(optRF_object$model.parameters) == 0){ # If no model could be produced, give an error message
-          stop("The function opt_importance could not model the relationship between number of trees and variable importance or selection stability.\n")
-        }
-        else{
-          stop("The function opt_importance could not model the relationship between number of trees and the selection stability.\n")
-        }
+    else{ # If the measure was set to be selection, plot the selection stability
+      if(nrow(optRF_object$model.parameters) == 2 ){ # If a model for VI and selection could be produced, plotting is not a problem
+        visualiseStability(optRF_object$model.parameters[2,1], optRF_object$model.parameters[2,2], ...)
       }
-
-      if(add == TRUE){
-        if(nrow(optRF_object$model.parameters) == 2){ # If a model for VI and selection stability could be produced, plotting is not a problem
-          points(TwoPLmodel(plot_seq, optRF_object$model.parameters[2,1], optRF_object$model.parameters[2,2]) ~ plot_seq,
-                 type="l", lwd=1.2, ...)
-          if(add.recommendation == TRUE & !is.null(optRF_object$recommendation)){
-            abline(v = optRF_object$recommendation, col=rgb(1, 0, 0, 0.5))
-            abline(h = TwoPLmodel(optRF_object$recommendation, optRF_object$model.parameters[2,1], optRF_object$model.parameters[2,2]),
-                   col=rgb(1, 0, 0, 0.5))
-          }
-          return()
-        }
-        if(nrow(optRF_object$model.parameters) == 1 && row.names(optRF_object$model.parameters) == "Selection_stability"){ # If only one model could be produced, it must be the selection model
-          points(TwoPLmodel(plot_seq, optRF_object$model.parameters[1,1], optRF_object$model.parameters[1,2]) ~ plot_seq,
-                 type="l", lwd=1.2, ...)
-          if(add.recommendation == TRUE & !is.null(optRF_object$recommendation)){
-            abline(v = optRF_object$recommendation, col=rgb(1, 0, 0, 0.5))
-            abline(h = TwoPLmodel(optRF_object$recommendation, optRF_object$model.parameters[1,1], optRF_object$model.parameters[1,2]),
-                   col=rgb(1, 0, 0, 0.5))
-          }
-          return()
-        }
-        if(nrow(optRF_object$model.parameters) == 0){ # If no model could be produced, give an error message
-          stop("The function opt_importance could not model the relationship between number of trees and variable importance or selection stability.\n")
+      else{
+        if(row.names(optRF_object$model.parameters) == "Selection_stability"){ # If only one model could be produced, it must be the selection model
+          visualiseStability(optRF_object$model.parameters[1,1], optRF_object$model.parameters[1,2], ...)
         }
         else{
           stop("The function opt_importance could not model the relationship between number of trees and the selection stability.\n")

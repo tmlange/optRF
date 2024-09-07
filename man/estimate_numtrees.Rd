@@ -7,7 +7,7 @@
 estimate_numtrees(
   optRF_object,
   measure = c("selection", "importance", "prediction"),
-  for_stability
+  for_stability = 0.95
 )
 }
 \arguments{
@@ -15,7 +15,7 @@ estimate_numtrees(
 
 \item{measure}{A character string indicating which stability measure is to be analysed. One of "selection" (default, analyses selection stability), "prediction" (analyses prediction stability) or "importance" (analyses variable importance stability).}
 
-\item{for_stability}{Either a single value or a vector containing multiple values containing the required stability.}
+\item{for_stability}{Either a single stability value or a vector containing multiple stability values for which the number of trees should be estimated.}
 }
 \value{
 A data frame summarising the estimated stability and run time in seconds for the given num.trees values.
@@ -24,9 +24,11 @@ A data frame summarising the estimated stability and run time in seconds for the
 Estimate the number of trees required to achieve certain stability of random forest
 }
 \examples{
+\dontrun{
 data(SNPdata)
 set.seed(123)
 result_optpred = opt_prediction(y = SNPdata[,1], X=SNPdata[,-1]) # optimise random forest
 estimate_numtrees(result_optpred, measure="prediction", for_stability=0.95)
+}
 
 }

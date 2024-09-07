@@ -1,25 +1,25 @@
 #' @export
 
-summary.opt_importance_object = function(optRF_object){
+summary.opt_importance_object = function(object, ...){
 
   # If the opt_importance function could give expectations for the RF_stability, summarise those
-  if(!is.null(optRF_object$expected_RF_stability)){
-    if(nrow(optRF_object$expected_RF_stability) == 4){
-      cat("Recommended number of trees: ", optRF_object$recommendation, "\n",
-          "Expected variable importance stability: ", optRF_object$expected_RF_stability[2], "\n",
-          "Expected selection stability: ", optRF_object$expected_RF_stability[3], "\n",
-          "Expected run time (sec): ", optRF_object$expected_RF_stability[4], sep = "")
+  if(!is.null(object$expected_RF_stability)){
+    if(nrow(object$expected_RF_stability) == 4){
+      cat("Recommended number of trees: ", object$recommendation, "\n",
+          "Expected variable importance stability: ", object$expected_RF_stability[2], "\n",
+          "Expected selection stability: ", object$expected_RF_stability[3], "\n",
+          "Expected run time (sec): ", object$expected_RF_stability[4], sep = "")
     }
-    if(nrow(optRF_object$expected_RF_stability) == 3){
-      if(row.names(optRF_object$expected_RF_stability)[2] =="Variable_importance_stability"){
-        cat("Recommended number of trees: ", optRF_object$recommendation, "\n",
-            "Expected variable importance stability: ", optRF_object$expected_RF_stability[2], "\n",
-            "Expected run time (sec): ", optRF_object$expected_RF_stability[3], sep = "")
+    if(nrow(object$expected_RF_stability) == 3){
+      if(row.names(object$expected_RF_stability)[2] =="Variable_importance_stability"){
+        cat("Recommended number of trees: ", object$recommendation, "\n",
+            "Expected variable importance stability: ", object$expected_RF_stability[2], "\n",
+            "Expected run time (sec): ", object$expected_RF_stability[3], sep = "")
       }
-      if(row.names(optRF_object$expected_RF_stability)[2] =="Selection_stability"){
-        cat("Recommended number of trees: ", optRF_object$recommendation, "\n",
-            "Expected selection stability: ", optRF_object$expected_RF_stability[2], "\n",
-            "Expected run time (sec): ", optRF_object$expected_RF_stability[3], sep = "")
+      if(row.names(object$expected_RF_stability)[2] =="Selection_stability"){
+        cat("Recommended number of trees: ", object$recommendation, "\n",
+            "Expected selection stability: ", object$expected_RF_stability[2], "\n",
+            "Expected run time (sec): ", object$expected_RF_stability[3], sep = "")
       }
     }
   }
@@ -27,9 +27,9 @@ summary.opt_importance_object = function(optRF_object){
 
   # if the opt_importance function could not give expectations for the RF_stability, summarise the result table
   else{
-    if(!is.null(optRF_object$result.table)){
+    if(!is.null(object$result.table)){
       cat("Result of the opt_importance function: \n")
-      return(optRF_object$result.table)
+      return(object$result.table)
     }
 
     # If neither the expectations nor the result table exist, give an error message

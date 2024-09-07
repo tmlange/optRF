@@ -4,7 +4,10 @@
 \alias{estimate_stability}
 \title{Estimate the stability of random forest}
 \usage{
-estimate_stability(optRF_object, with_num.trees = NULL)
+estimate_stability(
+  optRF_object,
+  with_num.trees = c(1000, 5000, 10000, 50000, 1e+05)
+)
 }
 \arguments{
 \item{optRF_object}{An optRF_object, either the result from the \link{opt_importance} or the \link{opt_prediction} function.}
@@ -18,9 +21,11 @@ A data frame summarising the estimated stability and run time in seconds for the
 Estimate the stability of random forest with certain numbers of trees
 }
 \examples{
+\dontrun{
 data(SNPdata)
 set.seed(123)
 result_optpred = opt_prediction(y = SNPdata[,1], X=SNPdata[,-1]) # optimise random forest
 estimate_stability(result_optpred, with_num.trees=c(1000, 5000, 10000, 50000, 100000))
+}
 
 }

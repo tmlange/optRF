@@ -4,20 +4,24 @@
 #'
 #' @param optRF_object An optRF_object, either the result from the \link{opt_importance} or the \link{opt_prediction} function.
 #' @param measure A character string indicating which stability measure is to be analysed. One of "selection" (default, analyses selection stability), "prediction" (analyses prediction stability) or "importance" (analyses variable importance stability).
-#' @param for_stability Either a single value or a vector containing multiple values containing the required stability.
+#' @param for_stability Either a single stability value or a vector containing multiple stability values for which the number of trees should be estimated.
 #'
 #' @return A data frame summarising the estimated stability and run time in seconds for the given num.trees values.
 #'
 #' @examples
+#' \dontrun{
 #' data(SNPdata)
 #' set.seed(123)
 #' result_optpred = opt_prediction(y = SNPdata[,1], X=SNPdata[,-1]) # optimise random forest
 #' estimate_numtrees(result_optpred, measure="prediction", for_stability=0.95)
+#' }
 #'
+#' @importFrom methods is
+#' @importFrom stats lm
 #' @export
 
 
-estimate_numtrees = function(optRF_object, measure = c("selection","importance","prediction"), for_stability){
+estimate_numtrees = function(optRF_object, measure = c("selection","importance","prediction"), for_stability = 0.95){
 
   if(!(is(optRF_object, "opt_prediction_object")) & !(is(optRF_object, "opt_importance_object"))){
     stop("Invalid object was inserted. The inserted object must be the result from the opt_prediction or opt_importance function.")
@@ -31,17 +35,20 @@ estimate_numtrees = function(optRF_object, measure = c("selection","importance",
     stop("Invalid input for measure. The measure must be either \"selection\", \"importance\", or \"prediction\".")
   }
 
+  if(!is.numeric(for_stability) | any(for_stability < 0)){
+    stop("The for_stability parameter needs to be a vector of positive numbers")
+  }
+
   TwoPLmodel.inv = function(for_stability, p1, p2){
     p1/((1/for_stability)-1)^p2
   }
   estimate_runtime = function(at, p1, p2){
-    p1 + at*p2
+    as.numeric(p1 + at*p2)
   }
   runtime_model = lm(optRF_object$result.table$run.time ~ optRF_object$result.table$num.trees_values)
 
   # estimate RF stability for prediction estimation
   if(is(optRF_object, "opt_prediction_object")){
-
     # If the measure was set to be importance, this will not work
     if(measure == "importance"){
       stop("The variable importance stability cannot be plotted with an object created with the function opt_prediction.\nPlease set the measure argument to either \"prediction\" or \"selection\". \n")
@@ -81,11 +88,7 @@ estimate_numtrees = function(optRF_object, measure = c("selection","importance",
       return(D_est)
     }
   }
-
-
-  # estimate RF stability for importance estimation
-  if(is(optRF_object, "opt_importance_object")){
-
+  else{ # estimate RF stability for importance estimation
     # If the measure was set to be importance, this will not work
     if(measure == "prediction"){
       stop("The prediction stability cannot be plotted with an object created with the function opt_importance.\nPlease set the measure argument to either \"importance\" or \"selection\". \n")
