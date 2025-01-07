@@ -190,9 +190,6 @@ opt_importance = function(y, X, number.repetitions=10, alpha = 0.05, num.trees_v
 
       # linear modelling of the relationship between run time and num.trees values
       tryCatch({
-        estimate_runtime = function(test_seq, p1, p2){
-          p1 + test_seq*p2
-        }
         runtime_model = lm(summary.result$run.time ~ summary.result$num.trees_values)
 
         D_est.rt = data.frame(num.trees = test_seq,

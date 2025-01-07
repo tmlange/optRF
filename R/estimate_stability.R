@@ -31,9 +31,6 @@ estimate_stability = function(optRF_object, with_num.trees = c(1000, 5000, 10000
     stop("The with_num.trees parameter needs to be a vector of positive numbers")
   }
 
-  estimate_runtime = function(with_num.trees, p1, p2){
-    as.numeric(p1 + with_num.trees*p2)
-  }
   runtime_model = lm(optRF_object$result.table$run.time ~ optRF_object$result.table$num.trees_values)
 
   # estimate RF stability for prediction estimation

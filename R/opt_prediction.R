@@ -112,11 +112,6 @@ opt_prediction = function(y, X, X_Test=NULL,
   }
   row.names(X_Test) = paste0("ID_", c(1:nrow(X_Test)))
 
-  estimate_runtime = function(test_seq, p1, p2){
-    p1 + test_seq*p2
-  }
-
-
   # Run the analysis
   # Check value of select_for
   if(is.numeric(y)){

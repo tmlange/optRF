@@ -18,3 +18,7 @@ TwoPLmodel = function(vec, p1, p2){
 TwoPLmodel.inv = function(vec, p1, p2){
   p1/((1/vec)-1)^p2
 }
+
+estimate_runtime = function(vec, p1, p2){
+  p1 + vec*p2
+}
