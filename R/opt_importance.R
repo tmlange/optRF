@@ -39,6 +39,8 @@ opt_importance = function(y, X, number.repetitions=10, alpha = 0.05, num.trees_v
 
   rec.num.trees = NA
 
+  # Defining to what number the recommendation of number of trees should be rounded to
+  round.rec = round.rec_helper(round.recommendation)
 
   # If y is neither numeric nor a factor, return an error message
   if(!is.numeric(y) & !is.factor(y)){
@@ -89,28 +91,6 @@ opt_importance = function(y, X, number.repetitions=10, alpha = 0.05, num.trees_v
   if(length(visualisation) != 1 || !(visualisation %in% c("none","importance","selection"))){
     stop("Invalid input for visualisation The visualisation must be either \"importance\", \"selection\", or \"none\".")
   }
-
-  # Defining to what number the recommendation of number of trees should be rounded to
-  if(identical(round.recommendation, c("thousand","hundred","ten","none"))){
-    round.recommendation = "thousand"
-  }
-  if(length(round.recommendation) != 1 || !(round.recommendation %in% c("thousand","hundred","ten","none"))){
-    stop("Invalid input for round.recommendation The round.recommendation must be either \"thousand\", \"hundred\", \"ten\", or \"none\".")
-  }
-  if(round.recommendation == "none"){
-    round.rec = 0
-  }
-  if(round.recommendation == "ten"){
-    round.rec = -1
-  }
-  if(round.recommendation == "hundred"){
-    round.rec = -2
-  }
-  if(round.recommendation == "thousand"){
-    round.rec = -3
-  }
-
-
 
 
   # Run the analysis

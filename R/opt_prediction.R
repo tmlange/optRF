@@ -43,6 +43,8 @@ opt_prediction = function(y, X, X_Test=NULL,
 
   rec.num.trees = NA
 
+  # Defining to what number the recommendation of number of trees should be rounded to
+  round.rec = round.rec_helper(round.recommendation)
 
   # Test if data format is correct
   if(!all.equal(nrow(X), length(y))){
@@ -103,26 +105,6 @@ opt_prediction = function(y, X, X_Test=NULL,
     selection.size = round(alpha)
   }
   row.names(X_Test) = paste0("ID_", c(1:nrow(X_Test)))
-
-  # Defining to what number the recommendation of number of trees should be rounded to
-  if(identical(round.recommendation, c("thousand","hundred","ten","none"))){
-    round.recommendation = "thousand"
-  }
-  if(length(round.recommendation) != 1 || !(round.recommendation %in% c("thousand","hundred","ten","none"))){
-    stop("Invalid input for round.recommendation The round.recommendation must be either \"thousand\", \"hundred\", \"ten\", or \"none\".")
-  }
-  if(round.recommendation == "none"){
-    round.rec = 0
-  }
-  if(round.recommendation == "ten"){
-    round.rec = -1
-  }
-  if(round.recommendation == "hundred"){
-    round.rec = -2
-  }
-  if(round.recommendation == "thousand"){
-    round.rec = -3
-  }
 
 
   TwoPLmodel = function(test_seq, p1, p2){
