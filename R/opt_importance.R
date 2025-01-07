@@ -115,7 +115,6 @@ opt_importance = function(y, X, number.repetitions=10, alpha = 0.05, num.trees_v
 
   # Run the analysis
 
-  red.VI.stability = vector()
   summary.result = data.frame()
   for(i in 1:length(num.trees_values)){
 

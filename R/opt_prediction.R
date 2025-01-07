@@ -169,7 +169,6 @@ opt_prediction = function(y, X, X_Test=NULL,
     }
   }
 
-  red.pred.stability = vector()
   summary.result = data.frame()
   for(i in 1:length(num.trees_values)){
     D_preds = data.frame(ID= row.names(X_Test))
