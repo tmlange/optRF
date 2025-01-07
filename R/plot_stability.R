@@ -35,17 +35,8 @@ plot_stability = function(optRF_object, measure = c("selection","importance","pr
     stop("Invalid object was inserted. The inserted object must be the result from the opt_prediction or opt_importance function.")
   }
 
-  # If the measure argument is invalid, give an error message
-  if(identical(measure, c("selection", "importance", "prediction"))){
-    measure = "selection"
-  }
-  if(length(measure) != 1 || !(measure %in% c("selection","importance","prediction"))){
-    stop("Invalid input for measure. The measure must be either \"selection\", \"importance\", or \"prediction\".")
-  }
-
-  TwoPLmodel = function(at, p1, p2){
-    1 / (1+(p1/at)^p2)
-  }
+  # Check value of measure
+  measure = match.arg(measure)
 
   visualiseStability = function(param1, param2, ...){
     if(add == FALSE){
