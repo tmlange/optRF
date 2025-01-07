@@ -2,9 +2,9 @@
 #'
 #' @description Estimate the number of trees required to achieve certain stability of random forest
 #'
-#' @param optRF_object An optRF_object, either the result from the \link{opt_importance} or the \link{opt_prediction} function.
 #' @param measure A character string indicating which stability measure is to be analysed. One of "selection" (default, analyses selection stability), "prediction" (analyses prediction stability) or "importance" (analyses variable importance stability).
 #' @param for_stability Either a single stability value or a vector containing multiple stability values for which the number of trees should be estimated.
+#' @inheritParams estimate_plot_shared_parameters
 #'
 #' @return A data frame summarising the estimated stability and run time in seconds for the given num.trees values.
 #'

@@ -22,7 +22,7 @@ opt_importance(
 
 \item{X}{A data frame containing the explanatory variables. The number of rows must be equal to the number of elements in y.}
 
-\item{number.repetitions}{Number of repetitions of random forest to estimate the variable importance stability.}
+\item{number.repetitions}{Number of repetitions of random forest to estimate the stability.}
 
 \item{alpha}{The amount of most important variables to be selected based on their estimated variable importance. If < 1, alpha will be considered the relative amount of variables in the data set.}
 
@@ -34,9 +34,9 @@ opt_importance(
 
 \item{rec.thresh}{If the number of trees leads to an increase of stability smaller or equal to the value specified, this number of trees will be recommended. Default is 1e-6.}
 
-\item{round.recommendation}{Setting to what number the recommended number of trees should be rounded to. Options: "none", "ten", "hundred", "thousand".}
+\item{round.recommendation}{Setting to what number the recommended number of trees should be rounded to. Options: "none", "ten", "hundred", "thousand" (default).}
 
-\item{...}{Any other argument from the ranger package.}
+\item{...}{Any other argument from the ranger function.}
 }
 \value{
 An opt_importance_object containing the recommended number of trees, based on which measure the recommendation was given (importance or selection), a matrix summarising the estimated stability and computation time of a random forest with the recommended numbers of trees, a matrix containing the calculated stability and computation time for the analysed numbers of trees, and the parameters used to model the relationship between stability and numbers of trees.

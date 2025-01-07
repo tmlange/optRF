@@ -4,14 +4,11 @@
 #'
 #' @param y A vector containing the response variable.
 #' @param X A data frame containing the explanatory variables. The number of rows must be equal to the number of elements in y.
-#' @param number.repetitions Number of repetitions of random forest to estimate the variable importance stability.
 #' @param alpha The amount of most important variables to be selected based on their estimated variable importance. If < 1, alpha will be considered the relative amount of variables in the data set.
-#' @param num.trees_values A vector containing the numbers of trees to be analysed. If not specified, 250, 500, 750, 1000, and 2000 trees will be analysed.
 #' @param visualisation Can be set to "importance" to draw a plot of the variable importance stability or to "selection" to draw a plot of the selection stability for the numbers of trees to be analysed.
 #' @param recommendation If set to "importance" (default) or "selection", a recommendation will be given based on optimised variable importance or selection stability. If set to be "none", the function will analyse the stability of random forest with the inserted numbers of trees without giving a recommendation.
-#' @param rec.thresh If the number of trees leads to an increase of stability smaller or equal to the value specified, this number of trees will be recommended. Default is 1e-6.
-#' @param round.recommendation Setting to what number the recommended number of trees should be rounded to. Options: "none", "ten", "hundred", "thousand".
-#' @param ... Any other argument from the ranger package.
+#' @inheritParams round_rec_helper
+#' @inheritParams opt_shared_parameters
 #'
 #' @return An opt_importance_object containing the recommended number of trees, based on which measure the recommendation was given (importance or selection), a matrix summarising the estimated stability and computation time of a random forest with the recommended numbers of trees, a matrix containing the calculated stability and computation time for the analysed numbers of trees, and the parameters used to model the relationship between stability and numbers of trees.
 #'
@@ -129,31 +126,20 @@ opt_importance = function(y, X, number.repetitions=10, alpha = 0.05, num.trees_v
 
 
     if(visualisation == "importance"){
-      plot(summary.result$VI.stability ~ summary.result$num.trees_values, main='Relationship between\n variable importance stability and number of trees',
-           ylab="Variable importance stability", xlab="number of trees",
-           col="black", cex=1.5, pch=20,
-           ylim=c((min(summary.result$VI.stability)-0.001), (max(summary.result$VI.stability)+0.001)),
-           xlim=c(min(summary.result$num.trees_values),max(summary.result$num.trees_values)),
-           cex.axis=1.2, cex.lab=1.2, cex.main=1.2)
+      create_stability_plot(summary.result$VI.stability, summary.result$num.trees_values, "variable importance stability")
     }
 
     if(visualisation == "selection"){
-      plot(summary.result$selection.stability ~ summary.result$num.trees_values, main='Relationship between\n selection stability and number of trees',
-           ylab="Selection stability", xlab="number of trees",
-           col="black", cex=1.5, pch=20,
-           ylim=c((min(summary.result$selection.stability)-0.001), (max(summary.result$selection.stability)+0.001)),
-           xlim=c(min(summary.result$num.trees_values),max(summary.result$num.trees_values)),
-           cex.axis=1.2, cex.lab=1.2, cex.main=1.2)
+      create_stability_plot(summary.result$selection.stability, summary.result$num.trees_values, "selection stability")
     }
 
 
     # If there are more than four data points, perform non linear modelling
     if(nrow(summary.result) >= 4){
 
+      start_val_VIp1 = summary.result$num.trees_values[round((nrow(summary.result)/2))]
       # non linear modelling of the relationship between variable importance stability and num.trees values
       tryCatch({
-
-        start_val_VIp1 = summary.result$num.trees_values[round((nrow(summary.result)/2))]
         non.lin.mod.VIv <- nlsLM(VI.stability ~ 1 / (1+(p1/num.trees_values)^p2), data=summary.result,
                                  start=c(p1=start_val_VIp1, p2=0.5),
                                  control = nls.lm.control(maxiter = 1024))
@@ -171,8 +157,6 @@ opt_importance = function(y, X, number.repetitions=10, alpha = 0.05, num.trees_v
 
       # non linear modelling of the relationship between selection stability and num.trees values
       tryCatch({
-
-        start_val_VIp1 = summary.result$num.trees_values[round((nrow(summary.result)/2))]
         non.lin.mod.sv <- nlsLM(selection.stability ~ 1 / (1+(p1/num.trees_values)^p2), data=summary.result,
                                 start=c(p1=start_val_VIp1, p2=0.5),
                                 control = nls.lm.control(maxiter = 1024))

@@ -5,15 +5,12 @@
 #' @param y A vector containing the response variable in the training data set.
 #' @param X A data frame containing the explanatory variables in the training data set. The number of rows must be equal to the number of elements in y.
 #' @param X_Test A data frame containing the explanatory variables of the test data set. If not entered, a test data set will be randomly generated.
-#' @param number.repetitions Number of repetitions of random forest to estimate the prediction stability.
 #' @param alpha The number of best individuals to be selected in the test data set based on their predicted response values. If < 1, alpha will be considered to be the relative amount of individuals in the test data set.
-#' @param num.trees_values A vector containing the numbers of trees to be analysed. If not specified, 250, 500, 750, 1000, and 2000 trees will be analysed.
 #' @param visualisation Can be set to "prediction" to draw a plot of the prediction stability or "selection" to draw a plot of the selection stability for the numbers of trees to be analysed.
 #' @param select_for What should be selected? In random forest classification, this must be set to the value of the desired class. In random forest regression, this can be set as "high" (default) to select the individuals with the highest predicted value, "low" to select the individuals with the lowest predicted value, or "zero" to select the individuals which predicted value is closest to zero.
 #' @param recommendation If set to "prediction" (default) or "selection", a recommendation will be given based on optimised prediction or selection stability. If set to be "none", the function will analyse the stability of random forest with the inserted numbers of trees without giving a recommendation.
-#' @param rec.thresh If the number of trees leads to an increase of stability smaller or equal to the value specified, this number of trees will be recommended. Default is 1e-6.
-#' @param round.recommendation Setting to what number the recommended number of trees should be rounded to. Options: "none", "ten", "hundred", "thousand" (default).
-#' @param ... Any other argument from the ranger function.
+#' @inheritParams round_rec_helper
+#' @inheritParams opt_shared_parameters
 #'
 #' @return An opt_prediction_object containing the recommended number of trees, based on which measure the recommendation was given (prediction or selection), a matrix summarising the estimated stability and computation time of a random forest with the recommended numbers of trees, a matrix containing the calculated stability and computation time for the analysed numbers of trees, and the parameters used to model the relationship between stability and numbers of trees.
 #'
@@ -215,30 +212,19 @@ opt_prediction = function(y, X, X_Test=NULL,
     summary.result = rbind(summary.result, tmp_res)
 
     if(visualisation == "prediction"){
-      plot(summary.result$pred.stability ~ summary.result$num.trees_values, main='Relationship between\n prediction stability and number of trees',
-           ylab="Prediction stability", xlab="number of trees",
-           col="black", cex=1.5, pch=20,
-           ylim=c((min(summary.result$pred.stability)-0.001), (max(summary.result$pred.stability)+0.001)),
-           xlim=c(min(summary.result$num.trees_values),max(summary.result$num.trees_values)),
-           cex.axis=1.2, cex.lab=1.2, cex.main=1.2)
+      create_stability_plot(summary.result$pred.stability, summary.result$num.trees_values, "prediction stability")
     }
 
     if(visualisation == "selection"){
-      plot(summary.result$selection.stability ~ summary.result$num.trees_values, main='Relationship between\n selection stability and number of trees',
-           ylab="Selection stability", xlab="number of trees",
-           col="black", cex=1.5, pch=20,
-           ylim=c((min(summary.result$selection.stability)-0.001), (max(summary.result$selection.stability)+0.001)),
-           xlim=c(min(summary.result$num.trees_values),max(summary.result$num.trees_values)),
-           cex.axis=1.2, cex.lab=1.2, cex.main=1.2)
+      create_stability_plot(summary.result$selection.stability, summary.result$num.trees_values, "selection stability")
     }
 
     # If there are more than four data points, model the relationship(s)
     if(nrow(summary.result) >= 4){
 
+      start_val_p1 = summary.result$num.trees_values[round((nrow(summary.result)/2))]
       # non linear modelling of the relationship between prediction stability and num.trees values
       tryCatch({
-
-        start_val_p1 = summary.result$num.trees_values[round((nrow(summary.result)/2))]
         non.lin.mod.pv <- nlsLM(pred.stability ~ 1 / (1+(p1/num.trees_values)^p2), data=summary.result,
                                 start=c(p1=start_val_p1, p2=0.5),
                                 control = nls.lm.control(maxiter = 1024))
@@ -256,8 +242,6 @@ opt_prediction = function(y, X, X_Test=NULL,
 
       # non linear modelling of the relationship between selection stability and num.trees values
       tryCatch({
-
-        start_val_p1 = summary.result$num.trees_values[round((nrow(summary.result)/2))]
         non.lin.mod.sv <- nlsLM(selection.stability ~ 1 / (1+(p1/num.trees_values)^p2), data=summary.result,
                                 start=c(p1=start_val_p1, p2=0.5),
                                 control = nls.lm.control(maxiter = 1024))

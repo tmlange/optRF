@@ -2,8 +2,8 @@
 #'
 #' @description Estimate the stability of random forest with certain numbers of trees
 #'
-#' @param optRF_object An optRF_object, either the result from the \link{opt_importance} or the \link{opt_prediction} function.
 #' @param with_num.trees Either a single num.trees value or a vector containing multiple num.trees values for which the stability should be estimated.
+#' @inheritParams estimate_plot_shared_parameters
 #'
 #' @return A data frame summarising the estimated stability and run time in seconds for the given num.trees values.
 #'

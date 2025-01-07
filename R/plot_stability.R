@@ -2,13 +2,13 @@
 #'
 #' @description Plot the estimated stability of random forest against certain numbers of trees
 #'
-#' @param optRF_object An optRF_object, either the result from the \link{opt_importance} or the \link{opt_prediction} function.
 #' @param measure A character string indicating which stability measure is to be plotted. One of "selection" (default, visualises selection stability), "prediction" (visualises prediction stability) or "importance" (visualises variable importance stability).
 #' @param from Smallest num.trees value to be plotted.
 #' @param to Greatest num.trees value to be plotted.
 #' @param add.recommendation When set as TRUE, if a recommendation was stated within the opt_prediction or opt_importance function, the recommended num.trees value as well as the expected random forest stability will be highlighted in the graph
 #' @param add If FALSE, a new plot will be created, if TRUE, the graph will be added to an existing plot.
 #' @param ... Any other arguments from the plot function.
+#' @inheritParams estimate_plot_shared_parameters
 #'
 #' @return A plot showing the estimated stability of random forest for the given num.trees values.
 #'
