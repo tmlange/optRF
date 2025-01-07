@@ -27,13 +27,8 @@ estimate_numtrees = function(optRF_object, measure = c("selection","importance",
     stop("Invalid object was inserted. The inserted object must be the result from the opt_prediction or opt_importance function.")
   }
 
-  # If the measure argument is invalid, give an error message
-  if(identical(measure, c("selection", "importance", "prediction"))){
-    measure = "selection"
-  }
-  if(length(measure) != 1 || !(measure %in% c("selection","importance","prediction"))){
-    stop("Invalid input for measure. The measure must be either \"selection\", \"importance\", or \"prediction\".")
-  }
+  # Check value of measure
+  measure = match.arg(measure)
 
   if(!is.numeric(for_stability) | any(for_stability < 0)){
     stop("The for_stability parameter needs to be a vector of positive numbers")
