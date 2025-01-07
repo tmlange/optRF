@@ -1,4 +1,4 @@
-round.rec_helper = function(round.recommendation = c("thousand","hundred","ten","none")){
+round_rec_helper = function(round.recommendation = c("thousand","hundred","ten","none")){
 
   round.recommendation = match.arg(round.recommendation)
 

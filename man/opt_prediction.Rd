@@ -5,8 +5,8 @@
 \title{Optimise random forest for prediction}
 \usage{
 opt_prediction(
-  y = NULL,
-  X = NULL,
+  y,
+  X,
   X_Test = NULL,
   number.repetitions = 10,
   alpha = 0.15,

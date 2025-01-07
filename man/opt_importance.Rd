@@ -5,8 +5,8 @@
 \title{Optimise random forest for estimation of variable importance}
 \usage{
 opt_importance(
-  y = NULL,
-  X = NULL,
+  y,
+  X,
   number.repetitions = 10,
   alpha = 0.05,
   num.trees_values = c(250, 500, 750, 1000, 2000),

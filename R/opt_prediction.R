@@ -44,7 +44,7 @@ opt_prediction = function(y, X, X_Test=NULL,
   rec.num.trees = NA
 
   # Defining to what number the recommendation of number of trees should be rounded to
-  round.rec = round.rec_helper(round.recommendation)
+  round.rec = round_rec_helper(round.recommendation)
 
   # Check value of visualisation
   visualisation = match.arg(visualisation)
