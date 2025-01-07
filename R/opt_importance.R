@@ -42,6 +42,12 @@ opt_importance = function(y, X, number.repetitions=10, alpha = 0.05, num.trees_v
   # Defining to what number the recommendation of number of trees should be rounded to
   round.rec = round.rec_helper(round.recommendation)
 
+  # Check value of visualisation
+  visualisation = match.arg(visualisation)
+
+  # Check value of recommendation
+  recommendation = match.arg(recommendation)
+
   # If y is neither numeric nor a factor, return an error message
   if(!is.numeric(y) & !is.factor(y)){
     stop("The response variable is neither numeric nor a factor")
@@ -76,21 +82,8 @@ opt_importance = function(y, X, number.repetitions=10, alpha = 0.05, num.trees_v
     1 / (1+(p1/test_seq)^p2)
   }
 
-  # Check value of recommendation
-  if(identical(recommendation, c("importance","selection","none"))){
-    recommendation = "importance"
-  }
-  if(length(recommendation) != 1 || !(recommendation %in% c("importance","selection","none"))){
-    stop("Invalid input for recommendation. The recommendation must be either \"importance\", \"selection\", or \"none\".")
-  }
 
-  # Check value of visualisation
-  if(identical(visualisation, c("none","importance","selection"))){
-    visualisation = "none"
-  }
-  if(length(visualisation) != 1 || !(visualisation %in% c("none","importance","selection"))){
-    stop("Invalid input for visualisation The visualisation must be either \"importance\", \"selection\", or \"none\".")
-  }
+
 
 
   # Run the analysis

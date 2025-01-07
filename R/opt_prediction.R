@@ -46,6 +46,12 @@ opt_prediction = function(y, X, X_Test=NULL,
   # Defining to what number the recommendation of number of trees should be rounded to
   round.rec = round.rec_helper(round.recommendation)
 
+  # Check value of visualisation
+  visualisation = match.arg(visualisation)
+
+  # Check value of recommendation
+  recommendation = match.arg(recommendation)
+
   # Test if data format is correct
   if(!all.equal(nrow(X), length(y))){
     stop("Length of y does not equal number of rows of X \n")
@@ -112,22 +118,6 @@ opt_prediction = function(y, X, X_Test=NULL,
   }
   estimate_runtime = function(test_seq, p1, p2){
     p1 + test_seq*p2
-  }
-
-  # Check value of recommendation
-  if(identical(recommendation, c("prediction","selection","none"))){
-    recommendation = "prediction"
-  }
-  if(length(recommendation) != 1 || !(recommendation %in% c("prediction","selection","none"))){
-    stop("Invalid input for recommendation. The recommendation must be either \"prediction\", \"selection\", or \"none\".")
-  }
-
-  # Check value of visualisation
-  if(identical(visualisation, c("none","prediction","selection"))){
-    visualisation = "none"
-  }
-  if(length(visualisation) != 1 || !(visualisation %in% c("none","prediction","selection"))){
-    stop("Invalid input for visualisation The visualisation must be either \"prediction\", \"selection\", or \"none\".")
   }
 
 
