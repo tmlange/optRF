@@ -32,17 +32,13 @@
 
 
 
-opt_importance = function(y=NULL, X=NULL, number.repetitions=10, alpha = 0.05, num.trees_values= c(250, 500, 750, 1000, 2000),
+opt_importance = function(y, X, number.repetitions=10, alpha = 0.05, num.trees_values= c(250, 500, 750, 1000, 2000),
                           visualisation= c("none","importance","selection"), recommendation = c("importance","selection","none"),
                           rec.thresh=1e-6, round.recommendation = c("thousand","hundred","ten","none"), ...){
 
 
   rec.num.trees = NA
 
-  # Check if data was given by the user
-  if(is.null(y) | is.null(X)){
-    stop("Please insert data via y and X")
-  }
 
   # If y is neither numeric nor a factor, return an error message
   if(!is.numeric(y) & !is.factor(y)){

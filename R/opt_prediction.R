@@ -35,7 +35,7 @@
 
 
 
-opt_prediction = function(y=NULL, X=NULL, X_Test=NULL,
+opt_prediction = function(y, X, X_Test=NULL,
                           number.repetitions=10, alpha = 0.15,
                           num.trees_values=c(250, 500, 750, 1000, 2000), visualisation = c("none","prediction","selection"), select_for = c("high", "low", "zero"),
                           recommendation = c("prediction","selection", "none"),
@@ -43,10 +43,6 @@ opt_prediction = function(y=NULL, X=NULL, X_Test=NULL,
 
   rec.num.trees = NA
 
-  # Check if data was given by the user
-  if(is.null(y) | is.null(X)){
-    stop("Please insert data via y and X \n")
-  }
 
   # Test if data format is correct
   if(!all.equal(nrow(X), length(y))){
