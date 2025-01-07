@@ -34,9 +34,7 @@ estimate_numtrees = function(optRF_object, measure = c("selection","importance",
     stop("The for_stability parameter needs to be a vector of positive numbers")
   }
 
-  TwoPLmodel.inv = function(for_stability, p1, p2){
-    p1/((1/for_stability)-1)^p2
-  }
+
   estimate_runtime = function(at, p1, p2){
     as.numeric(p1 + at*p2)
   }

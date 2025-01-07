@@ -78,14 +78,6 @@ opt_importance = function(y, X, number.repetitions=10, alpha = 0.05, num.trees_v
     stop("The num.tree_values need to be a vector of positive numbers")
   }
 
-  TwoPLmodel = function(test_seq, p1, p2){
-    1 / (1+(p1/test_seq)^p2)
-  }
-
-
-
-
-
   # Run the analysis
 
   summary.result = data.frame()

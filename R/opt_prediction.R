@@ -112,10 +112,6 @@ opt_prediction = function(y, X, X_Test=NULL,
   }
   row.names(X_Test) = paste0("ID_", c(1:nrow(X_Test)))
 
-
-  TwoPLmodel = function(test_seq, p1, p2){
-    1 / (1+(p1/test_seq)^p2)
-  }
   estimate_runtime = function(test_seq, p1, p2){
     p1 + test_seq*p2
   }
