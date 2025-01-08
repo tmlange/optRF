@@ -222,7 +222,7 @@ opt_importance = function(y, X, number.repetitions=10, alpha = 0.05, num.trees_v
     # Try to perform a recommendation using a non-linear model
     tryCatch({
 
-      # Calculate the decrease of variable importance stability per increase of trees
+      # Calculate the decrease of selection stability per increase of trees
       v1 = D_est.sv$estimated_selection_stability[-nrow(D_est.sv)]
       v2 = D_est.sv$estimated_selection_stability[-1]
       D_est.sv = D_est.sv[-1,]
