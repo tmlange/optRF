@@ -172,12 +172,9 @@ opt_importance = function(y, X, number.repetitions=10, alpha = 0.05, num.trees_v
     # Try to perform a recommendation using a non-linear model
     tryCatch({
 
-      # Calculate the decrease of variable importance stability per increase of trees
-      v1 = D_est.VIv$estimated_VI_stability[-nrow(D_est.VIv)]
-      v2 = D_est.VIv$estimated_VI_stability[-1]
+      # Calculate the increase of variable importance stability per increase of trees
+      D_est.VIv$diff = c(NA,diff(D_est.VIv$estimated_VI_stability)/10)
       D_est.VIv = D_est.VIv[-1,]
-      D_est.VIv$diff = v2 - v1
-      D_est.VIv$diff = D_est.VIv$diff/10
 
       # Finally, make a recommendation
       new.rec.thresh = rec.thresh
@@ -217,12 +214,9 @@ opt_importance = function(y, X, number.repetitions=10, alpha = 0.05, num.trees_v
     # Try to perform a recommendation using a non-linear model
     tryCatch({
 
-      # Calculate the decrease of selection stability per increase of trees
-      v1 = D_est.sv$estimated_selection_stability[-nrow(D_est.sv)]
-      v2 = D_est.sv$estimated_selection_stability[-1]
+      # Calculate the increase of selection stability per increase of trees
+      D_est.sv$diff = c(NA,diff(D_est.sv$estimated_selection_stability)/10)
       D_est.sv = D_est.sv[-1,]
-      D_est.sv$diff = v2 - v1
-      D_est.sv$diff = D_est.sv$diff/10
 
       # Finally, make a recommendation
       new.rec.thresh = rec.thresh

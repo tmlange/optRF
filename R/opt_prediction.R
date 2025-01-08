@@ -257,12 +257,9 @@ opt_prediction = function(y, X, X_Test=NULL,
     # Try to perform a recommendation using a non-linear model
     tryCatch({
 
-      # Calculate the decrease of prediction stability per increase of trees
-      v1 = D_est.pv$estimated_prediction_stability[-nrow(D_est.pv)]
-      v2 = D_est.pv$estimated_prediction_stability[-1]
+      # Calculate the increase of prediction stability per increase of trees
+      D_est.pv$diff = c(NA,diff(D_est.pv$estimated_prediction_stability)/10)
       D_est.pv = D_est.pv[-1,]
-      D_est.pv$diff = v2 - v1
-      D_est.pv$diff = D_est.pv$diff/10
 
       # Finally, make a recommendation
       new.rec.thresh = rec.thresh
@@ -299,12 +296,9 @@ opt_prediction = function(y, X, X_Test=NULL,
     # Try to perform a recommendation using a non-linear model
     tryCatch({
 
-      # Calculate the decrease of selection stability per increase of trees
-      v1 = D_est.sv$estimated_selection_stability[-nrow(D_est.sv)]
-      v2 = D_est.sv$estimated_selection_stability[-1]
+      # Calculate the increase of selection stability per increase of trees
+      D_est.sv$diff = c(NA,diff(D_est.sv$estimated_selection_stability)/10)
       D_est.sv = D_est.sv[-1,]
-      D_est.sv$diff = v2 - v1
-      D_est.sv$diff = D_est.sv$diff/10
 
       # Finally, make a recommendation
       new.rec.thresh = rec.thresh
