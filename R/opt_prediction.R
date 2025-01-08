@@ -222,46 +222,23 @@ opt_prediction = function(y, X, X_Test=NULL,
     # If there are more than four data points, model the relationship(s)
     if(nrow(summary.result) >= 4){
 
-      start_val_p1 = summary.result$num.trees_values[round((nrow(summary.result)/2))]
       # non linear modelling of the relationship between prediction stability and num.trees values
       tryCatch({
-        non.lin.mod.pv <- nlsLM(pred.stability ~ 1 / (1+(p1/num.trees_values)^p2), data=summary.result,
-                                start=c(p1=start_val_p1, p2=0.5),
-                                control = nls.lm.control(maxiter = 1024))
-
-        if(visualisation == "prediction"){
-          points(TwoPLmodel(test_seq, non.lin.mod.pv$m$getPars()[1], non.lin.mod.pv$m$getPars()[2]) ~ test_seq,
-                 type="l", col="navyblue", lwd=3)
-        }
-
+        non.lin.mod.pv = non_linear_modelling(summary.result, "pred.stability", test_seq, visualisation == "prediction")
         D_est.pv = data.frame(num.trees = test_seq,
                               estimated_prediction_stability = TwoPLmodel(test_seq, non.lin.mod.pv$m$getPars()[1], non.lin.mod.pv$m$getPars()[2]))
       }, error=function(e){})
 
-
-
       # non linear modelling of the relationship between selection stability and num.trees values
       tryCatch({
-        non.lin.mod.sv <- nlsLM(selection.stability ~ 1 / (1+(p1/num.trees_values)^p2), data=summary.result,
-                                start=c(p1=start_val_p1, p2=0.5),
-                                control = nls.lm.control(maxiter = 1024))
-
-        if(visualisation == "selection"){
-          points(TwoPLmodel(test_seq, non.lin.mod.sv$m$getPars()[1], non.lin.mod.sv$m$getPars()[2]) ~ test_seq,
-                 type="l", col="navyblue", lwd=3)
-        }
-
+        non.lin.mod.sv = non_linear_modelling(summary.result, "selection.stability", test_seq, visualisation == "selection")
         D_est.sv = data.frame(num.trees = test_seq,
                               estimated_selection_stability = TwoPLmodel(test_seq, non.lin.mod.sv$m$getPars()[1], non.lin.mod.sv$m$getPars()[2]))
       }, error=function(e){})
 
-
-
       # linear modelling of the relationship between run time and num.trees values
       tryCatch({
-
         runtime_model = lm(summary.result$run.time ~ summary.result$num.trees_values)
-
         D_est.rt = data.frame(num.trees = test_seq,
                               estimated_run_time = estimate_runtime(test_seq, runtime_model$coefficients[1], runtime_model$coefficients[2]))
       }, error=function(e){})

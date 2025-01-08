@@ -49,3 +49,25 @@ create_stability_plot = function(stability_values, num.tree_values, label){
        xlim=c(min(num.tree_values),max(num.tree_values)),
        cex.axis=1.2, cex.lab=1.2, cex.main=1.2)
 }
+
+#' Performs non linear modelling between stability values and the number of trees
+#'
+#' @param summary.result A data.frame containing the number of trees and the stability as columns
+#' @param variable A character string indicating the name of the column containing the stability values
+#' @param test_seq A numeric vector containing the values for the x axis that should visualized
+#' @param visualisation A boolean value indicating whether the model should be visualized in the current plot
+#'
+#' @return The non linear model as the output of the nlsLM function
+#' @noRd
+non_linear_modelling = function(summary.result, variable, test_seq, visualisation){
+  start_val_p1 = summary.result$num.trees_values[round((nrow(summary.result)/2))]
+  non.lin.mod <- nlsLM(summary.result[,variable] ~ 1 / (1+(p1/num.trees_values)^p2), data=summary.result,
+                          start=c(p1=start_val_p1, p2=0.5),
+                          control = nls.lm.control(maxiter = 1024))
+
+  if(visualisation){
+    points(TwoPLmodel(test_seq, non.lin.mod$m$getPars()[1], non.lin.mod$m$getPars()[2]) ~ test_seq,
+           type="l", col="navyblue", lwd=3)
+  }
+  return(non.lin.mod)
+}

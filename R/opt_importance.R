@@ -137,45 +137,23 @@ opt_importance = function(y, X, number.repetitions=10, alpha = 0.05, num.trees_v
     # If there are more than four data points, perform non linear modelling
     if(nrow(summary.result) >= 4){
 
-      start_val_VIp1 = summary.result$num.trees_values[round((nrow(summary.result)/2))]
       # non linear modelling of the relationship between variable importance stability and num.trees values
       tryCatch({
-        non.lin.mod.VIv <- nlsLM(VI.stability ~ 1 / (1+(p1/num.trees_values)^p2), data=summary.result,
-                                 start=c(p1=start_val_VIp1, p2=0.5),
-                                 control = nls.lm.control(maxiter = 1024))
-
-        if(visualisation == "importance"){
-          points(TwoPLmodel(test_seq, non.lin.mod.VIv$m$getPars()[1], non.lin.mod.VIv$m$getPars()[2]) ~ test_seq,
-                 type="l", col="navyblue", lwd=3)
-        }
-
+        non.lin.mod.VIv <- non_linear_modelling(summary.result, "VI.stability", test_seq, visualisation == "importance")
         D_est.VIv = data.frame(num.trees = test_seq,
                                estimated_VI_stability = TwoPLmodel(test_seq, non.lin.mod.VIv$m$getPars()[1], non.lin.mod.VIv$m$getPars()[2]))
       }, error=function(e){})
 
-
-
       # non linear modelling of the relationship between selection stability and num.trees values
       tryCatch({
-        non.lin.mod.sv <- nlsLM(selection.stability ~ 1 / (1+(p1/num.trees_values)^p2), data=summary.result,
-                                start=c(p1=start_val_VIp1, p2=0.5),
-                                control = nls.lm.control(maxiter = 1024))
-
-        if(visualisation == "selection"){
-          points(TwoPLmodel(test_seq, non.lin.mod.sv$m$getPars()[1], non.lin.mod.sv$m$getPars()[2]) ~ test_seq,
-                 type="l", col="navyblue", lwd=3)
-        }
-
+        non.lin.mod.sv <- non_linear_modelling(summary.result, "selection.stability", test_seq, visualisation == "selection")
         D_est.sv = data.frame(num.trees = test_seq,
                               estimated_selection_stability = TwoPLmodel(test_seq, non.lin.mod.sv$m$getPars()[1], non.lin.mod.sv$m$getPars()[2]))
       }, error=function(e){})
 
-
-
       # linear modelling of the relationship between run time and num.trees values
       tryCatch({
         runtime_model = lm(summary.result$run.time ~ summary.result$num.trees_values)
-
         D_est.rt = data.frame(num.trees = test_seq,
                               estimated_run_time = estimate_runtime(test_seq, runtime_model$coefficients[1], runtime_model$coefficients[2]))
       }, error=function(e){})
