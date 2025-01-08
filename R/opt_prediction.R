@@ -274,16 +274,11 @@ opt_prediction = function(y, X, X_Test=NULL,
         # Only trust the recommended number of trees, if the recommendation is greater than the inflection point
         if(rec.num.trees >= non.lin.mod.pv$m$getPars()[1]){
           if(exists('D_est.sv')){
-            estimated_final_prediction_stability = D_est.pv[D_est.pv$num.trees==rec.num.trees,]$estimated_prediction_stability
             estimated_final_selection_stability = D_est.sv[D_est.sv$num.trees==rec.num.trees,]$estimated_selection_stability
-            estimated_final_run_time = D_est.rt[D_est.rt$num.trees==rec.num.trees,]$estimated_run_time
-            trust.rec = TRUE
           }
-          if(!exists('D_est.sv')){
-            estimated_final_prediction_stability = D_est.pv[D_est.pv$num.trees==rec.num.trees,]$estimated_prediction_stability
-            estimated_final_run_time = D_est.rt[D_est.rt$num.trees==rec.num.trees,]$estimated_run_time
-            trust.rec = TRUE
-          }
+          estimated_final_prediction_stability = D_est.pv[D_est.pv$num.trees==rec.num.trees,]$estimated_prediction_stability
+          estimated_final_run_time = D_est.rt[D_est.rt$num.trees==rec.num.trees,]$estimated_run_time
+          trust.rec = TRUE
         }
 
         # If the recommendation is smaller than the inflection point, reduce the recommendation threshold by the factor 10
@@ -322,15 +317,10 @@ opt_prediction = function(y, X, X_Test=NULL,
         if(rec.num.trees >= non.lin.mod.sv$m$getPars()[1]){
           if(exists('D_est.pv')){
             estimated_final_prediction_stability = D_est.pv[D_est.pv$num.trees==rec.num.trees,]$estimated_prediction_stability
-            estimated_final_selection_stability = D_est.sv[D_est.sv$num.trees==rec.num.trees,]$estimated_selection_stability
-            estimated_final_run_time = D_est.rt[D_est.rt$num.trees==rec.num.trees,]$estimated_run_time
-            trust.rec = TRUE
           }
-          if(!exists('D_est.pv')){
-            estimated_final_selection_stability = D_est.sv[D_est.sv$num.trees==rec.num.trees,]$estimated_selection_stability
-            estimated_final_run_time = D_est.rt[D_est.rt$num.trees==rec.num.trees,]$estimated_run_time
-            trust.rec = TRUE
-          }
+          estimated_final_selection_stability = D_est.sv[D_est.sv$num.trees==rec.num.trees,]$estimated_selection_stability
+          estimated_final_run_time = D_est.rt[D_est.rt$num.trees==rec.num.trees,]$estimated_run_time
+          trust.rec = TRUE
         }
 
         # If the recommendation is smaller than the inflection point, reduce the recommendation threshold by the factor 10
