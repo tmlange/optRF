@@ -324,11 +324,9 @@ opt_prediction = function(y, X, X_Test=NULL,
     # if prediction and selection stability could be modeled
     if(exists('D_est.pv') & exists('D_est.sv')){
       modelpara.matrix = matrix(c(non.lin.mod.pv$m$getPars(), non.lin.mod.sv$m$getPars()), ncol=2, byrow=T)
-      colnames(modelpara.matrix) = c("Inflection_point", "Slope")
       rownames(modelpara.matrix) = c("Prediction_stability", "Selection_stability")
 
       RFstab.matrix = matrix(c(rec.num.trees, estimated_final_prediction_stability, estimated_final_selection_stability, estimated_final_run_time))
-      colnames(RFstab.matrix) = c("Value")
       rownames(RFstab.matrix) = c("num.trees", "Prediction_stability", "Selection_stability", "Run_time")
     }
 
@@ -336,26 +334,23 @@ opt_prediction = function(y, X, X_Test=NULL,
     if(exists('D_est.pv') & !exists('D_est.sv')){
       warning("Could not produce a nonlinear model to describe the relationship between selection stability and num.trees values\n")
       modelpara.matrix = matrix(non.lin.mod.pv$m$getPars(), ncol=2, byrow=T)
-      colnames(modelpara.matrix) = c("Inflection_point", "Slope")
       rownames(modelpara.matrix) = c("Prediction_stability")
 
       RFstab.matrix = matrix(c(rec.num.trees, estimated_final_prediction_stability, estimated_final_run_time))
-      colnames(RFstab.matrix) = c("Value")
       rownames(RFstab.matrix) = c("num.trees", "Prediction_stability", "Run_time")
     }
 
     # If selection stability could be modeled but prediction stability could not
     if(!exists('D_est.pv') & exists('D_est.sv')){
       warning("Could not produce a nonlinear model to describe the relationship between prediction stability and num.trees values\n")
-
       modelpara.matrix = matrix(non.lin.mod.sv$m$getPars(), ncol=2, byrow=T)
-      colnames(modelpara.matrix) = c("Inflection_point", "Slope")
       rownames(modelpara.matrix) = c("Selection_stability")
 
       RFstab.matrix = matrix(c(rec.num.trees, estimated_final_selection_stability, estimated_final_run_time))
-      colnames(RFstab.matrix) = c("Value")
       rownames(RFstab.matrix) = c("num.trees", "Selection_stability", "Run_time")
     }
+    colnames(modelpara.matrix) = c("Inflection_point", "Slope")
+    colnames(RFstab.matrix) = c("Value")
 
     output = list(rec.num.trees, recommendation, RFstab.matrix, summary.result, modelpara.matrix)
     names(output) = c("recommendation", "recommendation_for", "expected_RF_stability", "result.table", "model.parameters")
@@ -368,36 +363,21 @@ opt_prediction = function(y, X, X_Test=NULL,
     # if prediction and selection stability could be modeled
     if(exists('D_est.pv') & exists('D_est.sv')){
       modelpara.matrix = matrix(c(non.lin.mod.pv$m$getPars(), non.lin.mod.sv$m$getPars()), ncol=2, byrow=T)
-      colnames(modelpara.matrix) = c("Inflection_point", "Slope")
       rownames(modelpara.matrix) = c("Prediction_stability", "Selection_stability")
-
-      output = list(summary.result, modelpara.matrix)
-      names(output) = c("result.table", "model.parameters")
-      class(output) = "opt_prediction_object"
     }
 
     # if prediction stability could be modeled but selection stability could not be modeled
     if(exists('D_est.pv') & !exists('D_est.sv')){
       modelpara.matrix = matrix(non.lin.mod.pv$m$getPars(), ncol=2, byrow=T)
-      colnames(modelpara.matrix) = c("Inflection_point", "Slope")
       rownames(modelpara.matrix) = c("Prediction_stability")
-
       warning("Could not produce a nonlinear model to describe the relationship between selection stability and num.trees values\n")
-      output = list(summary.result, modelpara.matrix)
-      names(output) = c("result.table", "model.parameters")
-      class(output) = "opt_prediction_object"
     }
 
     # if prediction stability could not be modeled but selection stability could be modeled
     if(!exists('D_est.pv') & exists('D_est.sv')){
       modelpara.matrix = matrix(non.lin.mod.sv$m$getPars(), ncol=2, byrow=T)
-      colnames(modelpara.matrix) = c("Inflection_point", "Slope")
       rownames(modelpara.matrix) = c("Selection_stability")
-
       warning("Could not produce a nonlinear model to describe the relationship between prediction stability and num.trees values\n")
-      output = list(summary.result, modelpara.matrix)
-      names(output) = c("result.table", "model.parameters")
-      class(output) = "opt_prediction_object"
     }
 
     # if neither prediction nor selection stability could be modeled
@@ -405,9 +385,14 @@ opt_prediction = function(y, X, X_Test=NULL,
       warning("Could not produce a nonlinear model to describe the relationship between prediction stability and num.trees values as well as between selection stability and num.trees values\n")
       output = list(summary.result)
       names(output) = c("result.table")
-      class(output) = "opt_prediction_object"
+    }
+    else{
+      colnames(modelpara.matrix) = c("Inflection_point", "Slope")
+      output = list(summary.result, modelpara.matrix)
+      names(output) = c("result.table", "model.parameters")
     }
 
+    class(output) = "opt_prediction_object"
     return(output)
   }
 }
