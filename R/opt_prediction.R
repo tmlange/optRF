@@ -7,7 +7,7 @@
 #' @param X_Test A data frame containing the explanatory variables of the test data set. If not entered, a test data set will be randomly generated.
 #' @param alpha The number of best individuals to be selected in the test data set based on their predicted response values. If < 1, alpha will be considered to be the relative amount of individuals in the test data set.
 #' @param visualisation Can be set to "prediction" to draw a plot of the prediction stability or "selection" to draw a plot of the selection stability for the numbers of trees to be analysed.
-#' @param select_for What should be selected? In random forest classification, this must be set to the value of the desired class. In random forest regression, this can be set as "high" (default) to select the individuals with the highest predicted value, "low" to select the individuals with the lowest predicted value, or "zero" to select the individuals which predicted value is closest to zero.
+#' @param select_for What should be selected? In random forest classification, this must be set to a vector containing the values of the desired classes. In random forest regression, this can be set as "high" (default) to select the individuals with the highest predicted value, "low" to select the individuals with the lowest predicted value, or "zero" to select the individuals which predicted value is closest to zero.
 #' @param recommendation If set to "prediction" (default) or "selection", a recommendation will be given based on optimised prediction or selection stability. If set to be "none", the function will analyse the stability of random forest with the inserted numbers of trees without giving a recommendation.
 #' @inheritParams round_rec_helper
 #' @inheritParams opt_shared_parameters
@@ -54,6 +54,25 @@ opt_prediction = function(y, X, X_Test=NULL,
     stop("Length of y does not equal number of rows of X \n")
   }
 
+  # Verify type of response variable y and the value of select_for
+  if(is.numeric(y)){
+    # Validate select_for for numeric y
+    select_for = match.arg(select_for)
+  }
+  else if(is.factor(y)){
+    # Validate select_for for categorical y
+    if(missing(select_for) || !all(select_for %in% levels(y))){
+      stop("For a categorical response variable, select_for must be a subset of its classes.")
+    }
+    select_for = unique(select_for)
+    # Ensure select_for does not include all levels of y.
+    if(length(select_for) == length(levels(y))){
+      stop("select_for cannot include all classes of the categorical response variable.")
+    }
+  }
+  else {
+    stop("The response variable is neither numeric nor a factor.")
+  }
 
   # If no test data set was entered, a random test data set will be generated
   if(is.null(X_Test)){
@@ -81,25 +100,10 @@ opt_prediction = function(y, X, X_Test=NULL,
     }
   }
 
-  # Verify type of response variable y and the value of select_for
-  if(is.numeric(y)){
-    # Validate select_for for numeric y
-    select_for = match.arg(select_for)
-  }
-  else if(is.factor(y)){
-    # Validate select_for for categorical y
-    if(length(select_for) != 1 || !(select_for %in% names(summary(y)))){
-      stop("The value for select_for is not given or does not occur in the response variable of the training data set. Please select what class should be selected for.")
-    }
-  }
-  else {
-    stop("The response variable is neither numeric nor a factor.")
-  }
-
   variable.number <- round(ncol(X), -2)
 
   if(!is.numeric(num.trees_values) | any(num.trees_values < 1)){
-    stop("The num.tree_values need to be a vector of positive numbers.\n")
+    stop("The num.tree_values need to be a vector of positive numbers.")
   }
 
   if(variable.number < 100000){
@@ -171,7 +175,7 @@ opt_prediction = function(y, X, X_Test=NULL,
         D_selection = merge(D_selection, tmp_D_selection, by="ID")
       }
       else{
-        selection = D_pred_test[D_pred_test$pred == select_for,]$ID
+        selection = D_pred_test[D_pred_test$pred %in% select_for,]$ID
         tmp_D_selection = data.frame(ID = row.names(X_Test))
         tmp_D_selection$selection = "rejected"
         tmp_D_selection[tmp_D_selection$ID %in% selection,]$selection = "selected"
