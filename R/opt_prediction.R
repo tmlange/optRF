@@ -81,13 +81,22 @@ opt_prediction = function(y, X, X_Test=NULL,
     }
   }
 
-  # If y is neither numeric nor a factor, return an error message
-  if(!is.numeric(y) & !is.factor(y)){
+  # Verify type of response variable y and the value of select_for
+  if(is.numeric(y)){
+    # Validate select_for for numeric y
+    select_for = match.arg(select_for)
+  }
+  else if(is.factor(y)){
+    # Validate select_for for categorical y
+    if(length(select_for) != 1 || !(select_for %in% names(summary(y)))){
+      stop("The value for select_for is not given or does not occur in the response variable of the training data set. Please select what class should be selected for.")
+    }
+  }
+  else {
     stop("The response variable is neither numeric nor a factor.")
   }
 
   variable.number <- round(ncol(X), -2)
-
 
   if(!is.numeric(num.trees_values) | any(num.trees_values < 1)){
     stop("The num.tree_values need to be a vector of positive numbers.\n")
@@ -110,24 +119,6 @@ opt_prediction = function(y, X, X_Test=NULL,
   row.names(X_Test) = paste0("ID_", c(1:nrow(X_Test)))
 
   # Run the analysis
-  # Check value of select_for
-  if(is.numeric(y)){
-    if(identical(select_for, c("high","low","zero"))){
-      select_for = "high"
-      message("No value for select_for was set. It will be selected for highest values (default).")
-    }
-    if(length(select_for) != 1 || !(select_for %in% c("high","low","zero"))){
-      stop("Invalid input for select_for was set. Please enter either \"high\", \"low\", or \"zero\" when using opt_prediction for random forest regression.")
-    }
-  }
-  else{
-    if(identical(select_for, c("high","low","zero"))){
-      stop("No value for select_for was set. Please select what class should be selected for.")
-    }
-    if(length(select_for) != 1 || !(select_for %in% names(summary(y)))){
-      stop("The value for select_for does not occur in the response variable of the training data set. Please select what class should be selected for.")
-    }
-  }
 
   summary.result = data.frame()
   for(i in 1:length(num.trees_values)){

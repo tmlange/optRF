@@ -209,8 +209,6 @@ opt_importance = function(y, X, number.repetitions=10, alpha = 0.05, num.trees_v
       warning("A recommendation cannot be given because the relationship between selection stability and numbers of trees could not be modelled.")
     }
 
-
-
     # Try to perform a recommendation using a non-linear model
     tryCatch({
 
@@ -246,7 +244,6 @@ opt_importance = function(y, X, number.repetitions=10, alpha = 0.05, num.trees_v
 
   # Create the output based on the recommended number of trees
   if(!is.na(rec.num.trees)){
-
 
     # If the recommended number of trees is for some reason lower than 500 (default), set it to be 500
     if(rec.num.trees < 500){
