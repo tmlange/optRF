@@ -153,35 +153,26 @@ opt_prediction = function(y, X, X_Test=NULL,
         # Perform the selection
         if(select_for == "high"){
           D_pred_test = D_pred_test[order(D_pred_test$pred, decreasing=T),]
-          selection = D_pred_test$ID[1:selection.size]
+        }
+        else if(select_for == "low"){
+            D_pred_test = D_pred_test[order(D_pred_test$pred, decreasing=F),]
         }
         else{
-          if(select_for == "low"){
-            D_pred_test = D_pred_test[order(D_pred_test$pred, decreasing=F),]
-            selection = D_pred_test$ID[1:selection.size]
-          }
-          else{
-            # If it is neither "low" nor "high", it must be "zero"
-            # To analyse which predictions are closest to zero, calculate absolute values
-            D_pred_test$pred = abs(D_pred_test$pred)
-            D_pred_test = D_pred_test[order(D_pred_test$pred, decreasing=F),]
-            selection = D_pred_test$ID[1:selection.size]
-          }
+          # If it is neither "low" nor "high", it must be "zero"
+          # To analyse which predictions are closest to zero, calculate absolute values
+          D_pred_test$pred = abs(D_pred_test$pred)
+          D_pred_test = D_pred_test[order(D_pred_test$pred, decreasing=F),]
         }
-        tmp_D_selection = data.frame(ID = row.names(X_Test))
-        tmp_D_selection$selection = "rejected"
-        tmp_D_selection[tmp_D_selection$ID %in% selection,]$selection = "selected"
-        names(tmp_D_selection) = c("ID", paste0("Selections_in_run_", rep))
-        D_selection = merge(D_selection, tmp_D_selection, by="ID")
+        selection = D_pred_test$ID[1:selection.size]
       }
       else{
         selection = D_pred_test[D_pred_test$pred %in% select_for,]$ID
-        tmp_D_selection = data.frame(ID = row.names(X_Test))
-        tmp_D_selection$selection = "rejected"
-        tmp_D_selection[tmp_D_selection$ID %in% selection,]$selection = "selected"
-        names(tmp_D_selection) = c("ID", paste0("Selections_in_run_", rep))
-        D_selection = merge(D_selection, tmp_D_selection, by="ID")
       }
+      tmp_D_selection = data.frame(ID = row.names(X_Test))
+      tmp_D_selection$selection = "rejected"
+      tmp_D_selection[tmp_D_selection$ID %in% selection,]$selection = "selected"
+      names(tmp_D_selection) = c("ID", paste0("Selections_in_run_", rep))
+      D_selection = merge(D_selection, tmp_D_selection, by="ID")
     }
     end.time = Sys.time()
 
