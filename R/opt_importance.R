@@ -257,42 +257,33 @@ opt_importance = function(y, X, number.repetitions=10, alpha = 0.05, num.trees_v
     # If VI and selection stability could be modeled
     if(exists('D_est.VIv') & exists('D_est.sv')){
       modelpara.matrix = matrix(c(non.lin.mod.VIv$m$getPars(), non.lin.mod.sv$m$getPars()), ncol=2, byrow=T)
-      colnames(modelpara.matrix) = c("Inflection_point", "Slope")
       rownames(modelpara.matrix) = c("Variable_importance_stability", "Selection_stability")
 
       RFstab.matrix = matrix(c(rec.num.trees, estimated_final_VI_stability, estimated_final_selection_stability, estimated_final_run_time))
-      colnames(RFstab.matrix) = c("Value")
       rownames(RFstab.matrix) = c("num.trees", "Variable_importance_stability", "Selection_stability", "Run_time")
-
     }
 
     # If variable importance stability could be modeled but selection stability could not
     if(exists('D_est.VIv') & !exists('D_est.sv')){
       warning("Could not produce a nonlinear model to describe the relationship between selection stability and num.trees values\n")
-
       modelpara.matrix = matrix(non.lin.mod.VIv$m$getPars(), ncol=2, byrow=T)
-      colnames(modelpara.matrix) = c("Inflection_point", "Slope")
       rownames(modelpara.matrix) = c("Variable_importance_stability")
 
       RFstab.matrix = matrix(c(rec.num.trees, estimated_final_VI_stability, estimated_final_run_time))
-      colnames(RFstab.matrix) = c("Value")
       rownames(RFstab.matrix) = c("num.trees", "Variable_importance_stability", "Run_time")
-
     }
 
     # If selection stability could be modeled but variable importance stability could not
     if(!exists('D_est.VIv') & exists('D_est.sv')){
       warning("Could not produce a nonlinear model to describe the relationship between variable importance stability and num.trees values\n")
-
       modelpara.matrix = matrix(non.lin.mod.sv$m$getPars(), ncol=2, byrow=T)
-      colnames(modelpara.matrix) = c("Inflection_point", "Slope")
       rownames(modelpara.matrix) = c("Selection_stability")
 
       RFstab.matrix = matrix(c(rec.num.trees, estimated_final_selection_stability, estimated_final_run_time))
-      colnames(RFstab.matrix) = c("Value")
       rownames(RFstab.matrix) = c("num.trees", "Selection_stability", "Run_time")
-
     }
+    colnames(modelpara.matrix) = c("Inflection_point", "Slope")
+    colnames(RFstab.matrix) = c("Value")
 
     output = list(rec.num.trees, recommendation, RFstab.matrix, summary.result, modelpara.matrix)
     names(output) = c("recommendation", "recommendation_for", "expected_RF_stability", "result.table", "model.parameters")
@@ -310,36 +301,21 @@ opt_importance = function(y, X, number.repetitions=10, alpha = 0.05, num.trees_v
   # If variable importance stability and selection stability could be modeled
   if(exists('D_est.VIv') & exists('D_est.sv')){
     modelpara.matrix = matrix(c(non.lin.mod.VIv$m$getPars(), non.lin.mod.sv$m$getPars()), ncol=2, byrow=T)
-    colnames(modelpara.matrix) = c("Inflection_point", "Slope")
     rownames(modelpara.matrix) = c("Variable_importance_stability", "Selection_stability")
-
-    output = list(summary.result, modelpara.matrix)
-    names(output) = c("result.table", "model.parameters")
-    class(output) = "opt_importance_object"
   }
 
   # If variable importance stability could be modeled but selection stability could not
   if(exists('D_est.VIv') & !exists('D_est.sv')){
     modelpara.matrix = matrix(non.lin.mod.VIv$m$getPars(), ncol=2, byrow=T)
-    colnames(modelpara.matrix) = c("Inflection_point", "Slope")
     rownames(modelpara.matrix) = c("Variable_importance_stability")
-
     warning("Could not produce a nonlinear model to describe the relationship between selection stability and num.trees values\n")
-    output = list(summary.result, modelpara.matrix)
-    names(output) = c("result.table", "model.parameters")
-    class(output) = "opt_importance_object"
   }
 
   # If selection stability could be modeled but variable importance stability could not
   if(!exists('D_est.VIv') & exists('D_est.sv')){
     modelpara.matrix = matrix(non.lin.mod.sv$m$getPars(), ncol=2, byrow=T)
-    colnames(modelpara.matrix) = c("Inflection_point", "Slope")
     rownames(modelpara.matrix) = c("Selection_stability")
-
     warning("Could not produce a nonlinear model to describe the relationship between variable importance stability and num.trees values\n")
-    output = list(summary.result, modelpara.matrix)
-    names(output) = c("result.table", "model.parameters")
-    class(output) = "opt_importance_object"
   }
 
   # If neither could be modeled
@@ -347,8 +323,13 @@ opt_importance = function(y, X, number.repetitions=10, alpha = 0.05, num.trees_v
     warning("Could not produce a nonlinear model to describe the relationship between variable importance stability and num.trees values as well as between selection stability and num.trees values\n")
     output = list(summary.result)
     names(output) = c("result.table")
-    class(output) = "opt_importance_object"
+  }
+  else{
+    colnames(modelpara.matrix) = c("Inflection_point", "Slope")
+    output = list(summary.result, modelpara.matrix)
+    names(output) = c("result.table", "model.parameters")
   }
 
+  class(output) = "opt_importance_object"
   return(output)
 }
