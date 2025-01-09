@@ -184,17 +184,15 @@ opt_prediction = function(y, X, X_Test=NULL,
 
     # Summarising the results
     if(is.numeric(y)){
-      tmp_res = data.frame(num.trees_values = num.trees_values[i],
-                           pred.stability = icc(D_preds)$value,
-                           selection.stability = kappam.fleiss(D_selection)$value,
-                           run.time = (as.numeric(difftime(end.time, start.time, units = "secs")))/number.repetitions)
+      pred_stability = icc(D_preds)$value
     }
     else{
-      tmp_res = data.frame(num.trees_values = num.trees_values[i],
-                           pred.stability = kappam.fleiss(D_preds)$value,
-                           selection.stability = kappam.fleiss(D_selection)$value,
-                           run.time = (as.numeric(difftime(end.time, start.time, units = "secs")))/number.repetitions)
+      pred_stability = kappam.fleiss(D_preds)$value
     }
+    tmp_res = data.frame(num.trees_values = num.trees_values[i],
+                         pred.stability = pred_stability,
+                         selection.stability = kappam.fleiss(D_selection)$value,
+                         run.time = (as.numeric(difftime(end.time, start.time, units = "secs")))/number.repetitions)
     summary.result = rbind(summary.result, tmp_res)
 
     if(visualisation == "prediction"){
