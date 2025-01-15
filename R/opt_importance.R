@@ -123,8 +123,6 @@ opt_importance = function(y, X, number.repetitions=10, alpha = 0.05, num.trees_v
                          run.time = (as.numeric(difftime(end.time, start.time, units = "secs"))/number.repetitions))
     summary.result = rbind(summary.result, tmp_res)
 
-
-
     if(visualisation == "importance"){
       create_stability_plot(summary.result$VI.stability, summary.result$num.trees_values, "variable importance stability")
     }
@@ -132,7 +130,6 @@ opt_importance = function(y, X, number.repetitions=10, alpha = 0.05, num.trees_v
     if(visualisation == "selection"){
       create_stability_plot(summary.result$selection.stability, summary.result$num.trees_values, "selection stability")
     }
-
 
     # If there are more than four data points, perform non linear modelling
     if(nrow(summary.result) >= 4){
