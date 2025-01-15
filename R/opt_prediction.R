@@ -4,7 +4,7 @@
 #'
 #' @param y A vector containing the response variable in the training data set.
 #' @param X A data frame containing the explanatory variables in the training data set. The number of rows must be equal to the number of elements in y.
-#' @param X_Test A data frame containing the explanatory variables of the test data set. If not entered, a test data set will be randomly generated.
+#' @param X_Test A data frame containing the explanatory variables of the test data set. If not entered, the out of bag data will be used.
 #' @param alpha The number of best individuals to be selected in the test data set based on their predicted response values. If < 1, alpha will be considered to be the relative amount of individuals in the test data set.
 #' @param visualisation Can be set to "prediction" to draw a plot of the prediction stability or "selection" to draw a plot of the selection stability for the numbers of trees to be analysed.
 #' @param select_for What should be selected? In random forest classification, this must be set to a vector containing the values of the desired classes. In random forest regression, this can be set as "high" (default) to select the individuals with the highest predicted value, "low" to select the individuals with the lowest predicted value, or "zero" to select the individuals which predicted value is closest to zero.
@@ -74,30 +74,16 @@ opt_prediction = function(y, X, X_Test=NULL,
     stop("The response variable is neither numeric nor a factor.")
   }
 
-  # If no test data set was entered, a random test data set will be generated
+  # Verify variables of the test data set
   if(is.null(X_Test)){
-    message("No test data were entered. A test data set will be simulated.")
-    Test_size = round(ncol(X), -2)/10
-
-    create.var = function(x){
-      if(dim(table(x)) == 1){
-        rep(x[1], Test_size)
-      }
-      else{
-        sample(unique(x)[order(unique(x))], size = Test_size, replace=TRUE, prob=as.numeric(table(x)/length(x)))
-      }
-    }
-
-    # For very small data sets, simulate test data with 100 observations
-    if(Test_size<100){
-      Test_size = 100
-    }
-    X_Test = apply(X, 2, create.var)
+    message("No test data were entered. Out of bag data will be used.")
+    sample.IDs = paste0("ID_", c(1:nrow(X)))
   }
   else{
     if(ncol(X) != ncol(X_Test) | !all(colnames(X) %in% colnames(X_Test))){
       stop("X_Test needs to contain the same variables as X.")
     }
+    sample.IDs = paste0("ID_", c(1:nrow(X_Test)))
   }
 
   variable.number <- round(ncol(X), -2)
@@ -113,21 +99,20 @@ opt_prediction = function(y, X, X_Test=NULL,
     test_seq = seq(10, round((variable.number*100), -1), 10)
   }
 
-  # Defining the number of individuals to be selected from the test data set
+  # Defining the number of individuals to be selected from the data set
   if(alpha < 1){
-    selection.size = round(nrow(X_Test)*alpha)
+    selection.size = round(length(sample.IDs)*alpha)
   }
   else{
     selection.size = round(alpha)
   }
-  row.names(X_Test) = paste0("ID_", c(1:nrow(X_Test)))
 
   # Run the analysis
 
   summary.result = data.frame()
   for(i in 1:length(num.trees_values)){
-    D_preds = data.frame(ID= row.names(X_Test))
-    D_selection = data.frame(ID= row.names(X_Test))
+    D_preds = data.frame(ID= sample.IDs)
+    D_selection = data.frame(ID= sample.IDs)
     start.time = Sys.time()
     for(rep in 1:number.repetitions){
 
@@ -138,8 +123,24 @@ opt_prediction = function(y, X, X_Test=NULL,
                          num.trees = num.trees_values[i],
                          verbose = FALSE,
                          write.forest = TRUE,
+                         keep.inbag = TRUE,
                          ...)
-      predictions <- predict(myForest, data=X_Test)$predictions
+      if(is.null(X_Test)){
+        all_predictions = predict(myForest, data = X, predict.all = TRUE)$predictions
+        predictions = vector()
+        for(observation_number in 1:length(y)){
+          keep.predictions = vector()
+          for(tree_rep in 1:num.trees_values[i]){
+            if(myForest[["inbag.counts"]][[tree_rep]][observation_number] == 0){
+              keep.predictions = c(keep.predictions, all_predictions[observation_number,][tree_rep])
+            }
+          }
+          predictions = c(predictions, mean(keep.predictions))
+        }
+      }
+      else{
+        predictions <- predict(myForest, data=X_Test)$predictions
+      }
 
       # Creating the data frame to estimate the prediction stability (D_preds)
       tmp_D_preds = data.frame(predictions)
@@ -147,7 +148,7 @@ opt_prediction = function(y, X, X_Test=NULL,
       D_preds = cbind(D_preds, tmp_D_preds)
 
       # Creating the data frame to estimate the selection stability (D_selection)
-      D_pred_test = data.frame(ID = row.names(X_Test), pred = predictions)
+      D_pred_test = data.frame(ID = sample.IDs, pred = predictions)
 
       if(is.numeric(y)){
         # Perform the selection
@@ -168,7 +169,7 @@ opt_prediction = function(y, X, X_Test=NULL,
       else{
         selection = D_pred_test[D_pred_test$pred %in% select_for,]$ID
       }
-      tmp_D_selection = data.frame(ID = row.names(X_Test))
+      tmp_D_selection = data.frame(ID = sample.IDs)
       tmp_D_selection$selection = "rejected"
       tmp_D_selection[tmp_D_selection$ID %in% selection,]$selection = "selected"
       names(tmp_D_selection) = c("ID", paste0("Selections_in_run_", rep))
