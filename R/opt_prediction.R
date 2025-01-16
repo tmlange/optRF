@@ -113,11 +113,12 @@ opt_prediction = function(y, X, X_Test=NULL,
   for(i in 1:length(num.trees_values)){
     D_preds = data.frame(ID= sample.IDs)
     D_selection = data.frame(ID= sample.IDs)
-    start.time = Sys.time()
+    time.taken = 0
     for(rep in 1:number.repetitions){
 
       cat("Analysing random forest with ", num.trees_values[i], " trees, progress: ", round((rep/number.repetitions)*100, 0), "%            \r", sep="")
 
+      start.time = Sys.time()
       myForest <- ranger(x=X,
                          y=y,
                          num.trees = num.trees_values[i],
@@ -125,6 +126,7 @@ opt_prediction = function(y, X, X_Test=NULL,
                          write.forest = TRUE,
                          keep.inbag = TRUE,
                          ...)
+      time.taken = time.taken + as.numeric(difftime(Sys.time(), start.time, units = "secs"))
       if(is.null(X_Test)){
         all_predictions = predict(myForest, data = X, predict.all = TRUE)$predictions
         predictions = vector()
@@ -180,7 +182,6 @@ opt_prediction = function(y, X, X_Test=NULL,
       names(tmp_D_selection) = c("ID", paste0("Selections_in_run_", rep))
       D_selection = merge(D_selection, tmp_D_selection, by="ID")
     }
-    end.time = Sys.time()
 
     # Removing the column with the IDs so that D_preds is a data frame that contains only the predictions
     D_preds = D_preds[,-1]
@@ -198,7 +199,7 @@ opt_prediction = function(y, X, X_Test=NULL,
     tmp_res = data.frame(num.trees_values = num.trees_values[i],
                          pred.stability = pred_stability,
                          selection.stability = kappam.fleiss(D_selection)$value,
-                         run.time = (as.numeric(difftime(end.time, start.time, units = "secs")))/number.repetitions)
+                         run.time = time.taken/number.repetitions)
     summary.result = rbind(summary.result, tmp_res)
 
     if(visualisation == "prediction"){
