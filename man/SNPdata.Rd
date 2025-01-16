@@ -8,14 +8,14 @@
 An object of class \code{"data.frame"}
 \describe{
  \item{yield}{Simulated wheat yield in g/m^2}
- \item{SNP_0001 to SNP_7500}{Simulated values for 7,500 single nucleotide polymorphism (SNP) markers}
+ \item{SNP_0001 to SNP_5000}{Simulated values for 5,000 single nucleotide polymorphism (SNP) markers}
 }
 }
 \usage{
 data(SNPdata)
 }
 \description{
-Data set containing simulated data of wheat yield in g/m^2 of 250 wheat lines and 7,500 SNP markers
+Data set containing simulated data of wheat yield in g/m^2 of 250 wheat lines and 5,000 SNP markers
 being coded as 0 for homozygous form of the major allele and 2 for homozygous form of the
 minor allele.
 }
