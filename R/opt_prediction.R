@@ -135,7 +135,12 @@ opt_prediction = function(y, X, X_Test=NULL,
               keep.predictions = c(keep.predictions, all_predictions[observation_number,][tree_rep])
             }
           }
-          predictions = c(predictions, mean(keep.predictions))
+          if(is.factor(y)){
+            predictions = c(predictions, levels(y)[which.max(table(keep.predictions))])
+          }
+          else{
+            predictions = c(predictions, mean(keep.predictions))
+          }
         }
       }
       else{
