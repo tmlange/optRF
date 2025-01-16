@@ -131,12 +131,8 @@ opt_prediction = function(y, X, X_Test=NULL,
         all_predictions = predict(myForest, data = X, predict.all = TRUE)$predictions
         predictions = vector()
         for(observation_number in 1:length(y)){
-          keep.predictions = vector()
-          for(tree_rep in 1:num.trees_values[i]){
-            if(myForest[["inbag.counts"]][[tree_rep]][observation_number] == 0){
-              keep.predictions = c(keep.predictions, all_predictions[observation_number,][tree_rep])
-            }
-          }
+          inbag_counts = sapply(myForest[["inbag.counts"]], `[`, observation_number)
+          keep.predictions = all_predictions[observation_number, inbag_counts == 0]
           if(is.factor(y)){
             predictions = c(predictions, levels(y)[which.max(table(keep.predictions))])
           }
