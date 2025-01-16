@@ -1,7 +1,7 @@
 Package: optRF
 Type: Package
 Title: Increasing the stability of random forest by optimising the number of trees
-Version: 0.4.2.0
+Version: 1.1.0-3
 Author: c(person(given = "Thomas Martin",
                  family = "Lange",
                  email = "thomas.lange@uni-goettingen.de", 
@@ -17,8 +17,12 @@ License: GPL (>= 2)
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.3.2
-Depends: R (>= 4.1.2), minpack.lm (>= 1.2-4), ranger (>= 0.16.0), irr (>= 0.84.1)
+Depends: 
+    R (>= 3.6.0)
 Imports: 
+    minpack.lm (>= 1.2-4),
+    ranger (>= 0.16.0),
+    irr (>= 0.84.1),
     graphics,
     methods,
     stats

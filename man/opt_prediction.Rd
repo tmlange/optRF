@@ -24,7 +24,7 @@ opt_prediction(
 
 \item{X}{A data frame containing the explanatory variables in the training data set. The number of rows must be equal to the number of elements in y.}
 
-\item{X_Test}{A data frame containing the explanatory variables of the test data set. If not entered, a test data set will be randomly generated.}
+\item{X_Test}{A data frame containing the explanatory variables of the test data set. If not entered, the out of bag data will be used.}
 
 \item{number.repetitions}{Number of repetitions of random forest to estimate the stability.}
 
