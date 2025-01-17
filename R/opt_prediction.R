@@ -129,15 +129,20 @@ opt_prediction = function(y, X, X_Test=NULL,
       time.taken = time.taken + as.numeric(difftime(Sys.time(), start.time, units = "secs"))
       if(is.null(X_Test)){
         all_predictions = predict(myForest, data = X, predict.all = TRUE)$predictions
-        predictions = vector()
+        if(is.factor(y)){
+          predictions = factor(character(length(y)), levels = levels(y))
+        }
+        else{
+          predictions = numeric(length(y))
+        }
         for(observation_number in 1:length(y)){
           inbag_counts = sapply(myForest[["inbag.counts"]], `[`, observation_number)
           keep.predictions = all_predictions[observation_number, inbag_counts == 0]
           if(is.factor(y)){
-            predictions = c(predictions, levels(y)[which.max(table(keep.predictions))])
+            predictions[observation_number] = levels(y)[which.max(table(keep.predictions))]
           }
           else{
-            predictions = c(predictions, mean(keep.predictions))
+            predictions[observation_number] = mean(keep.predictions)
           }
         }
       }

@@ -82,11 +82,13 @@ opt_importance = function(y, X, number.repetitions=10, alpha = 0.05, num.trees_v
 
     D_VI = data.frame(variable.name = names(X))
     D_selection = data.frame(variable.name = names(X))
-    start.time = Sys.time()
+    time.taken = 0
     for(rep in 1:number.repetitions){
 
       # Perform random forest to estimate the importance per variable
       cat("Analysing random forest with ", num.trees_values[i], " trees, progress: ", round((rep/number.repetitions)*100, 0), "%            \r", sep="")
+
+      start.time = Sys.time()
       myForest <- ranger(x=X,
                          y=y,
                          num.trees = num.trees_values[i],
@@ -94,7 +96,7 @@ opt_importance = function(y, X, number.repetitions=10, alpha = 0.05, num.trees_v
                          verbose = FALSE,
                          write.forest = TRUE,
                          ...)
-
+      time.taken = time.taken + as.numeric(difftime(Sys.time(), start.time, units = "secs"))
       VI_result = data.frame(myForest$variable.importance)
       names(VI_result) = paste0("VI_run", rep)
       VI_result$variable.name = row.names(VI_result)
@@ -109,7 +111,6 @@ opt_importance = function(y, X, number.repetitions=10, alpha = 0.05, num.trees_v
 
       D_VI = merge(D_VI, VI_result, by="variable.name")
     }
-    end.time = Sys.time()
 
     # Removing the column with the variable names so that D_VI is a data frame that contains only variable importance estimates
     D_VI = D_VI[,-1]
@@ -120,7 +121,7 @@ opt_importance = function(y, X, number.repetitions=10, alpha = 0.05, num.trees_v
     tmp_res = data.frame(num.trees_values = num.trees_values[i],
                          VI.stability = icc(D_VI)$value,
                          selection.stability = kappam.fleiss(D_selection)$value,
-                         run.time = (as.numeric(difftime(end.time, start.time, units = "secs"))/number.repetitions))
+                         run.time = time.taken/number.repetitions)
     summary.result = rbind(summary.result, tmp_res)
 
     if(visualisation == "importance"){
