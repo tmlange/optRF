@@ -5,6 +5,7 @@
 #' @param y A vector containing the response variable.
 #' @param X A data frame containing the explanatory variables. The number of rows must be equal to the number of elements in y.
 #' @param alpha The amount of most important variables to be selected based on their estimated variable importance. If < 1, alpha will be considered the relative amount of variables in the data set.
+#' @param importance Variable importance mode, one of "permutation" (default), "impurity" or "impurity_corrected". The "impurity" measure is the Gini index for classification and the variance of the responses for regression.
 #' @param visualisation Can be set to "importance" to draw a plot of the variable importance stability or to "selection" to draw a plot of the selection stability for the numbers of trees to be analysed.
 #' @param recommendation If set to "importance" (default) or "selection", a recommendation will be given based on optimised variable importance or selection stability. If set to be "none", the function will analyse the stability of random forest with the inserted numbers of trees without giving a recommendation.
 #' @inheritParams round_rec_helper
@@ -30,14 +31,17 @@
 
 
 opt_importance = function(y, X, number.repetitions=10, alpha = 0.05, num.trees_values= c(250, 500, 750, 1000, 2000),
+                          importance = c("permutation", "impurity", "impurity_corrected"),
                           visualisation= c("none","importance","selection"), recommendation = c("importance","selection","none"),
                           rec.thresh=1e-6, round.recommendation = c("thousand","hundred","ten","none"), verbose = TRUE, ...){
-
 
   rec.num.trees = NA
 
   # Defining to what number the recommendation of number of trees should be rounded to
   round.rec = round_rec_helper(round.recommendation)
+
+  # Check value of importance
+  importance = match.arg(importance)
 
   # Check value of visualisation
   visualisation = match.arg(visualisation)
@@ -94,7 +98,7 @@ opt_importance = function(y, X, number.repetitions=10, alpha = 0.05, num.trees_v
       myForest <- ranger(x=X,
                          y=y,
                          num.trees = num.trees_values[i],
-                         importance = "permutation",
+                         importance = importance,
                          verbose = FALSE,
                          write.forest = TRUE,
                          ...)

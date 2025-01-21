@@ -10,6 +10,7 @@ opt_importance(
   number.repetitions = 10,
   alpha = 0.05,
   num.trees_values = c(250, 500, 750, 1000, 2000),
+  importance = c("permutation", "impurity", "impurity_corrected"),
   visualisation = c("none", "importance", "selection"),
   recommendation = c("importance", "selection", "none"),
   rec.thresh = 1e-06,
@@ -28,6 +29,8 @@ opt_importance(
 \item{alpha}{The amount of most important variables to be selected based on their estimated variable importance. If < 1, alpha will be considered the relative amount of variables in the data set.}
 
 \item{num.trees_values}{A vector containing the numbers of trees to be analysed. If not specified, 250, 500, 750, 1000, and 2000 trees will be analysed.}
+
+\item{importance}{Variable importance mode, one of "permutation" (default), "impurity" or "impurity_corrected". The "impurity" measure is the Gini index for classification and the variance of the responses for regression.}
 
 \item{visualisation}{Can be set to "importance" to draw a plot of the variable importance stability or to "selection" to draw a plot of the selection stability for the numbers of trees to be analysed.}
 
