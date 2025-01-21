@@ -1,6 +1,7 @@
 #' @param number.repetitions Number of repetitions of random forest to estimate the stability.
 #' @param num.trees_values A vector containing the numbers of trees to be analysed. If not specified, 250, 500, 750, 1000, and 2000 trees will be analysed.
 #' @param rec.thresh If the number of trees leads to an increase of stability smaller or equal to the value specified, this number of trees will be recommended. Default is 1e-6.
+#' @param verbose Show computation status
 #' @param ... Any other argument from the ranger function.
 #' @name opt_shared_parameters
 NULL

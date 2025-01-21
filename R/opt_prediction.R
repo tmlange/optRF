@@ -36,7 +36,7 @@ opt_prediction = function(y, X, X_Test=NULL,
                           number.repetitions=10, alpha = 0.15,
                           num.trees_values=c(250, 500, 750, 1000, 2000), visualisation = c("none","prediction","selection"), select_for = c("high", "low", "zero"),
                           recommendation = c("prediction","selection", "none"),
-                          rec.thresh = 1e-6, round.recommendation = c("thousand","hundred","ten","none"), ...){
+                          rec.thresh = 1e-6, round.recommendation = c("thousand","hundred","ten","none"), verbose = TRUE, ...){
 
   rec.num.trees = NA
 
@@ -116,7 +116,9 @@ opt_prediction = function(y, X, X_Test=NULL,
     time.taken = 0
     for(rep in 1:number.repetitions){
 
-      cat("Analysing random forest with ", num.trees_values[i], " trees, progress: ", round((rep/number.repetitions)*100, 0), "%            \r", sep="")
+      if(verbose){
+        message("Analysing random forest with ", num.trees_values[i], " trees, progress: ", round((rep/number.repetitions)*100, 0), "%            \r", sep="")
+      }
 
       start.time = Sys.time()
       myForest <- ranger(x=X,
@@ -325,7 +327,9 @@ opt_prediction = function(y, X, X_Test=NULL,
       rec.num.trees = 500
     }
 
-    message("\n Recommended num.trees value: ", rec.num.trees)
+    if(verbose){
+      message("\n Recommended num.trees value: ", rec.num.trees)
+    }
 
     # Create output
 

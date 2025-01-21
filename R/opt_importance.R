@@ -31,7 +31,7 @@
 
 opt_importance = function(y, X, number.repetitions=10, alpha = 0.05, num.trees_values= c(250, 500, 750, 1000, 2000),
                           visualisation= c("none","importance","selection"), recommendation = c("importance","selection","none"),
-                          rec.thresh=1e-6, round.recommendation = c("thousand","hundred","ten","none"), ...){
+                          rec.thresh=1e-6, round.recommendation = c("thousand","hundred","ten","none"), verbose = TRUE, ...){
 
 
   rec.num.trees = NA
@@ -86,7 +86,9 @@ opt_importance = function(y, X, number.repetitions=10, alpha = 0.05, num.trees_v
     for(rep in 1:number.repetitions){
 
       # Perform random forest to estimate the importance per variable
-      cat("Analysing random forest with ", num.trees_values[i], " trees, progress: ", round((rep/number.repetitions)*100, 0), "%            \r", sep="")
+      if(verbose){
+        message("Analysing random forest with ", num.trees_values[i], " trees, progress: ", round((rep/number.repetitions)*100, 0), "%            \r", sep="")
+      }
 
       start.time = Sys.time()
       myForest <- ranger(x=X,
@@ -248,7 +250,9 @@ opt_importance = function(y, X, number.repetitions=10, alpha = 0.05, num.trees_v
       rec.num.trees = 500
     }
 
-    message("\n Recommended num.trees value: ", rec.num.trees)
+    if(verbose){
+      message("\n Recommended num.trees value: ", rec.num.trees)
+    }
 
     # Create output
 

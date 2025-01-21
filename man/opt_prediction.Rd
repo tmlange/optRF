@@ -16,6 +16,7 @@ opt_prediction(
   recommendation = c("prediction", "selection", "none"),
   rec.thresh = 1e-06,
   round.recommendation = c("thousand", "hundred", "ten", "none"),
+  verbose = TRUE,
   ...
 )
 }
@@ -41,6 +42,8 @@ opt_prediction(
 \item{rec.thresh}{If the number of trees leads to an increase of stability smaller or equal to the value specified, this number of trees will be recommended. Default is 1e-6.}
 
 \item{round.recommendation}{Setting to what number the recommended number of trees should be rounded to. Options: "none", "ten", "hundred", "thousand" (default).}
+
+\item{verbose}{Show computation status}
 
 \item{...}{Any other argument from the ranger function.}
 }
