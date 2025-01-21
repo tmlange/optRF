@@ -91,7 +91,7 @@ opt_importance = function(y, X, number.repetitions=10, alpha = 0.05, num.trees_v
 
       # Perform random forest to estimate the importance per variable
       if(verbose){
-        message("Analysing random forest with ", num.trees_values[i], " trees, progress: ", round((rep/number.repetitions)*100, 0), "%            \r", sep="")
+        message(paste0("Analysing random forest with ", num.trees_values[i], " trees, progress: ", round((rep/number.repetitions)*100, 0), "%            \r", sep=""), appendLF = F)
       }
 
       start.time = Sys.time()

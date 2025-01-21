@@ -117,7 +117,7 @@ opt_prediction = function(y, X, X_Test=NULL,
     for(rep in 1:number.repetitions){
 
       if(verbose){
-        message("Analysing random forest with ", num.trees_values[i], " trees, progress: ", round((rep/number.repetitions)*100, 0), "%            \r", sep="")
+        message(paste0("Analysing random forest with ", num.trees_values[i], " trees, progress: ", round((rep/number.repetitions)*100, 0), "%            \r", sep=""), appendLF = F)
       }
 
       start.time = Sys.time()
