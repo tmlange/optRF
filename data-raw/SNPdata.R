@@ -12,7 +12,7 @@ set.seed(123)
 Yield = rnorm(observations, 600, 100)
 
 # Create SNP numbers
-nc_1 = round(0.01*snps) # Number of SNPs that are significantly associated with the phenotype
+nc_1 = round(0.02*snps) # Number of SNPs that are significantly associated with the phenotype
 nc_2 = snps-nc_1 # Number of SNPs that are not significantly associated with the phenotype
 
 # Divide the phenotypic data into three parts
