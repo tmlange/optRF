@@ -1,0 +1,184 @@
+---
+title: "Optimising random forest using optRF"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{optRF}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Introduction 
+  
+This vignette serves as a quick-start guide for determining the optimal number of trees in a random forest using the `optRF` package. To demonstrate its functionality, we will utilize the `SNPdata` dataset included with the `optRF` package. 
+  
+```{r message=FALSE, warning=FALSE}
+library(optRF)
+library(ranger)
+```
+
+
+
+## The `opt_prediction` function
+
+
+### Optimising random forest for predictions
+To determine the optimal number of trees for random forest predictions, the `opt_prediction` function from the `optRF` package can be used. For a detailed description of the `opt_prediction` function, please refer to its [`vignette`](opt_prediction.html).
+
+As an example, let's use the first 200 rows of the `SNPdata` data set as the training data and the last 50 rows as the test data:
+
+```{r message=FALSE}
+Training = SNPdata[1:200,] # Rows 1 to 200 as training data
+Test = SNPdata[201:250,-1] # Rows 201 to 250 as test data, excluding the response column (column 1)
+```
+
+To make the code reproducible, we’ll set a seed of `123` before using the `opt_prediction` function. This function identifies the optimal number of trees required for random forest to predict the response variable in the test data set:
+
+```{r message=FALSE}
+set.seed(123) # Set a seed for reproducibility
+optRF_result = opt_prediction(y=Training[,1], X=Training[,-1], X_Test=Test)
+```
+
+After running the `opt_prediction` function, the recommended number of trees and the expected stability of the random forest model can be accessed as follows:
+
+```{r message=FALSE}
+optRF_result$recommendation
+optRF_result$expected_RF_stability
+```
+
+The output suggests that the optimal number of trees for stable predictions is 19,000. Using this configuration, the random forest model achieves a prediction stability of 0.98, indicating a high correlation of predicted responses across repeated runs of the model.  
+
+With the optimal number of trees identified, random forest can now be used to predict the response variable in the test data set. For this, the `ranger` function is utilized: 
+
+```{r message=FALSE}
+RFmodel = ranger(y=Training[,1], x=Training[,-1], 
+                 write.forest = TRUE, num.trees=optRF_result$recommendation)
+predictions = predict(RFmodel, data=Test)$predictions
+predicted_Test_data = data.frame(ID = row.names(Test), predicted_response = predictions)
+```
+
+The predictions for the test dataset are now stored in the `predicted_Test_data` data frame, which includes the IDs and their corresponding predicted responses.
+
+
+### Optimising random forest for prediction based decisions
+
+Predicted values from random forest can support decision-making, such as selecting the top-performing individuals in a data set. To proceed, it is essential to define the number of top-performing individuals to be selected. For instance, suppose we aim to select the top 5 performers from a test data set containing 50 individuals.
+To evaluate the stability of random forest in supporting this selection decision, repeated runs of the model are performed. In each run, the top individuals are classified as `selected`, while the remaining individuals are classified as `rejected`. The selection stability is then quantified using *Fleiss’ Kappa*, which measures the consistency of these classifications across the repeated runs. 
+
+To determine the optimal number of trees for selecting the top 5 individuals, the `opt_prediction` function can be configured with `alpha = 0.1` (indicating that the top 10% of individuals should be selected) and `recommendation = "selection"` (indicating that the recommendation should be based on selection stability):
+```{r message=FALSE}
+set.seed(123) # Set a seed for reproducibility
+optRF_result_2 = opt_prediction(y=Training[,1], X=Training[,-1], X_Test=Test,
+                                alpha=0.1, recommendation="selection")
+```
+
+The recommended number of trees and the expected stability metrics can be accessed as follows:
+
+```{r message=FALSE}
+optRF_result_2$recommendation
+optRF_result_2$expected_RF_stability
+```
+
+The output indicates that the recommended number of trees has increased to 73,000. With this configuration:
+
+* The prediction stability (correlation of predicted responses across runs) is 0.993.
+* The selection stability (consistency in selecting the top individuals across runs) is 0.837.
+
+To ensure reproducibility and reliability, it is advisable to publish the decisions made by the random forest model along with the corresponding prediction and selection stability values. These metrics, as provided by optRF_result_2$expected_RF_stability, help to demonstrate the robustness of the predictions and decision-making process.
+
+
+
+
+## The `opt_importance` function
+
+
+### Optimising random forest for variable importance estimation
+In addition to predictions, random forest can be used to estimate variable importance and select the most relevant variables in a data set. For variable selection, the `opt_importance` function from the `optRF` package can help determine the optimal number of trees for random forest. For a detailed explanation of the `opt_importance` function, please refer to its [`vignette.`](opt_importance.html).
+
+
+Using the `opt_importance` function, we can identify the optimal number of trees required to reliably estimate the importance of variables in a data set. To ensure reproducibility, we begin by setting a seed:
+
+```{r message=FALSE}
+set.seed(123) # Set a seed for reproducibility
+optRF_result = opt_importance(y=SNPdata[,1], X=SNPdata[,-1])
+```
+
+Once the `opt_importance` function is executed, the recommended number of trees and the stability metrics can be accessed as follows:
+
+```{r message=FALSE}
+optRF_result$recommendation
+optRF_result$expected_RF_stability
+```
+
+The results indicate that the optimal number of trees for estimating variable importance is 40,000. With this configuration, the variable importance stability is 0.96, which reflects the correlation of variable importance estimates across repeated runs of random forest.  
+
+With the optimal number of trees determined, random forest can now be used to estimate variable importance. This can be achieved using the `ranger` function with permutation importance: 
+
+```{r message=FALSE}
+RFmodel = ranger(y=SNPdata[,1], x=SNPdata[,-1], num.trees=optRF_result$recommendation,
+                 write.forest = TRUE, importance="permutation")
+D_VI = data.frame(variable = names(SNPdata)[-1], 
+                  importance = RFmodel$variable.importance)
+```
+
+The variable importance results are now saved in the data frame `D_VI`, which contains the variable names and their respective importance estimates.
+
+
+
+### Optimising random forest for variable selection
+
+Now that we have obtained stable estimates of variable importance, we can use these estimates to select the most important variables from the dataset. However, before proceeding, it is necessary to estimate how many variables in the dataset significantly affect the response variable.
+
+One approach to achieve this is by visualizing the distribution of variable importance estimates. A histogram provides an intuitive way to identify patterns, such as a clear separation between important and less important variables:
+
+```{r fig.width=6, fig.height=4.5, fig.align='center'}
+hist(D_VI$importance, 
+     main="Histogram of variable importances", xlab="")
+```
+
+From the histogram, it is apparent that the majority of variables have importance values between -5 and 5. However, a small subset of variables exceeds an importance threshold of 5. These variables are likely to have a genuine impact on the response and should be selected for further analysis.
+
+Based on the histogram, we calculate the number of variables with importance values greater than 5:
+
+```{r message=FALSE}
+selection.size = sum(RFmodel$variable.importance>5)
+```
+
+Using this number of selected variables, the optimal number of trees for random forest can be determined with the `opt_importance` function:
+
+```{r message=FALSE}
+set.seed(123) # Set a seed for reproducibility
+optRF_result_2 = opt_importance(y=SNPdata[,1], X=SNPdata[,-1], 
+                                recommendation = "selection",
+                                alpha = selection.size)
+```
+
+With the recommended number of trees, we re-estimate variable importance and select the top variables:
+
+```{r message=FALSE}
+RFmodel_2 = ranger(y=SNPdata[,1], x=SNPdata[,-1], num.trees=optRF_result_2$recommendation,
+                   write.forest = TRUE, importance="permutation")
+D_VI_2 = data.frame(variable = names(SNPdata)[-1], 
+                    importance = RFmodel_2$variable.importance)
+D_VI_2 = D_VI_2[order(D_VI_2$importance, decreasing=TRUE),]
+selected_variables = D_VI_2[1:selection.size,1]
+```
+
+The vector `selected_variables` now contains the names of the most important variables in the data set. 
+To enhance reproducibility and reliability, the selection results should be published along with the variable importance stability and selection stability metrics. These can be easily accessed from the output of the `opt_importance` function:
+
+```{r message=FALSE}
+optRF_result_2$recommendation
+optRF_result_2$expected_RF_stability
+```
+
+
+
+## Conclusions
+Random forest can be effectively used to predict the response variable in a test dataset where only the predictor variables are known, and the predicted response values can be utilized to identify the top-performing individuals. Similarly, random forest can estimate the importance of variables in the dataset and facilitate the selection of the most influential variables. However, it is important to note that random forest is a non-deterministic method, meaning it can yield different results even when run on the same dataset. To ensure the reproducibility and reliability of the results, it is essential to determine the optimal number of trees for random forest and use this to guide decision-making. Additionally, stability measures should be reported alongside the results to assess the robustness of the predictions and selections. 
