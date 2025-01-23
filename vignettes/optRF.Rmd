@@ -2,7 +2,7 @@
 title: "Optimising random forest using optRF"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{optRF}
+  %\VignetteIndexEntry{Optimising random forest using optRF}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

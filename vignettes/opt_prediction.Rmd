@@ -2,7 +2,7 @@
 title: "Optimising random forest for prediction based decision-making processes"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{opt_prediction}
+  %\VignetteIndexEntry{Optimising random forest for prediction based decision-making processes}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

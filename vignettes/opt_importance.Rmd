@@ -1,0 +1,296 @@
+---
+title: "Optimising random forest for variable selection"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Optimising random forest for variable selection}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+## Introduction 
+
+Random forest is a widely used machine learning technique, particularly effective for tasks such as variable selection, where the importance of each variable is assessed and the most significant variables are chosen. Despite its numerous advantages, it is important to recognize that random forest is inherently non-deterministic. This means that repeating the analysis, even with the same dataset, can lead to variations in variable importance estimates due to the stochastic nature of the algorithm.
+
+To demonstrate the functionality of the `optRF` package, we will use the `SNPdata` data set included in the package.  This data set contains in the first column the yield of 250 wheat individuals as well as 5000 genomic markers (so called SNP markers) that can contain either the value 0 or 2. While this example focuses on genomic research, the `optRF` package is versatile and can optimize random forest for any type of data set. Before proceeding, ensure the necessary packages are loaded into your R environment. In addition to `optRF`, the `ranger` package (for efficient random forest implementation) and `minpack.lm` package (for optimization tasks) are required:
+
+```{r message=FALSE, warning=FALSE}
+library(ranger)
+library(minpack.lm)
+library(optRF)
+```
+
+## Variable importance estimation using random forest
+Random forest is a powerful tool for estimating the importance of predictor variables (in this case the genomic markers) based on their association with a response variable (in this case the yield). In the `ranger` function, variable importance can be calculated using the `importance` argument, which can be set to `"impurity"`, `"impurity_corrected"`, or `"permutation"`. In this example, we define variable importance using the `"permutation"` method. To ensure reproducibility, we set a seed before running the analysis:
+
+```{r message=FALSE}
+set.seed(123) # Set a seed for reproducibility
+RFmodel = ranger(y=SNPdata[,1], x=SNPdata[,-1], write.forest = TRUE, importance="permutation")
+D_VI = data.frame(variable = names(SNPdata)[-1], importance = RFmodel$variable.importance)
+D_VI = D_VI[order(D_VI$importance, decreasing=TRUE),]
+```
+
+The data frame `D_VI` now contains the variable importance scores for each predictor, sorted in descending order. These scores provide insights into the relative significance of each variable in the data set. Since random forest is a non-deterministic method, repeated analyses using the same data set can yield different variable importance scores. To illustrate this, we repeat the analysis with a different seed:
+
+```{r message=FALSE}
+set.seed(321) # Set a seed for reproducibility
+RFmodel_2 = ranger(y=SNPdata[,1], x=SNPdata[,-1], write.forest = TRUE, importance="permutation")
+D_VI_2 = data.frame(variable = names(SNPdata)[-1], importance = RFmodel_2$variable.importance)
+D_VI_2 = D_VI_2[order(D_VI_2$importance, decreasing=TRUE),]
+```
+
+We can now merge `D_VI` and `D_VI_2` to see how much the variable importance estimates varied simply by repeating random forest after setting a different seed: 
+
+```{r fig.width=6, fig.height=4.5, fig.align='center'}
+M = merge(D_VI, D_VI_2, by="variable")
+plot(M$importance.x, M$importance.y,
+     xlab="Variable importances in the first run", ylab="Variable importances in the second run")
+cor(M$importance.x, M$importance.y)
+```
+
+The scatter plot and the correlation coefficient (0.27) reveal substantial variability in the variable importance estimates between the two runs. This demonstrates how the non-deterministic nature of random forest can lead to inconsistencies in variable rankings.
+
+## Increasing the stability of random forest
+
+Random forest operates by growing multiple decision trees (or regression trees, in this case) and calculating variable importance within each tree. Since each tree is built independently, the importance values for a given variable can differ between trees. To provide a more reliable measure, random forest averages these importance values across all trees. Consequently, the stability of the variable importance estimates improves as the number of trees increases.
+
+By default, R packages like `ranger`, `randomForest`, and `Rborist` typically use 500 trees. However, for the `SNPdata` data set, 500 trees may not be sufficient to achieve stable variable importance estimates and reliable selections.
+
+To evaluate how the number of trees affects both variable importance stability (correlation of variable importance estimates across runs) and computation time, we tested random forests with different tree counts: 500, 2,500, 5,000, 10,000, 15,000, and 20,000 trees. The stability was calculated as the correlation between variable importance scores obtained from two repeated runs of random forest, each using a different seed. Additionally, we measured the average computation time for generating these random forests.
+
+```{r message=FALSE}
+num.trees_values = c(500, 2500, 5000, 10000, 15000, 20000)
+result = data.frame()
+for(i in num.trees_values){
+
+  start.time = Sys.time()
+
+  set.seed(123)
+  RFmodel_1 = ranger(y=SNPdata[,1], x=SNPdata[,-1], num.trees=i,
+                     write.forest = TRUE, importance="permutation")
+  D_VI_1 = data.frame(variable = names(SNPdata)[-1], importance = RFmodel_1$variable.importance)
+
+  set.seed(321)
+  RFmodel_2 = ranger(y=SNPdata[,1], x=SNPdata[,-1],  num.trees=i,
+                     write.forest = TRUE, importance="permutation")
+  D_VI_2 = data.frame(variable = names(SNPdata)[-1], importance = RFmodel_2$variable.importance)
+  end.time = Sys.time()
+
+  M = merge(D_VI_1, D_VI_2, by="variable")
+  result = rbind(result, data.frame(number_of_trees = i,
+                                    variable_importance_stability = cor(M$importance.x, M$importance.y),
+                                    computation_time = (end.time - start.time)/2))
+}
+result
+```
+
+As expected, the stability of variable importance estimates improves with a higher number of trees. For example, stability rises from 0.27 at 500 trees to 0.92 at 20,000 trees.
+However, the relationship between the number of trees and variable importance stability is nonlinear. Initially, stability increases rapidly with additional trees but eventually begins to plateau. This diminishing return indicates that beyond a certain number of trees, the stability gains become marginal. In contrast to stability, computation time increases linearly with the number of trees. This is a predictable outcome since each additional tree contributes directly to processing time. We can plot the stability and computation time to better understand these trends:
+
+```{r fig.width=8, fig.height=4.5, fig.align='center'}
+par(mfrow=c(1,2))
+plot(variable_importance_stability ~ number_of_trees, data=result)
+plot(computation_time ~ number_of_trees, data=result)
+abline(lm(result$computation_time ~ result$number_of_trees), lwd=2, col="grey")
+```
+
+Using the observed data points, it is now possible to model the relationship between the variable importance stability (s) and the number of trees (t) using a two parameter logistic regression (2PL) model 
+$$
+\hat s_j = \frac{1}{1+\left( \frac{\theta_1}{t_j}\right)^{\theta_2}}
+$$ 
+where $\theta_1$ denotes the number of trees at which the variable importance stability reaches 0.5 and $\theta_2$ denotes the slope of the curve at $\theta_1$, indicating the steepness of the stability increase. 
+
+To estimate the parameters $\theta_1$ and $\theta_2$, we use the `nlsLM` function from the `minpack.lm` package. This function requires reasonable starting values for the parameters. We can assume that 1000 trees is a realistic value for $\theta_1$ and that the slope might be 1 at this point of the curve. 
+
+```{r message=FALSE}
+stability_model = nlsLM(variable_importance_stability ~ 1 / (1+(theta1/number_of_trees)^theta2), data=result,
+                        start=c(theta1=1000, theta2=1),
+                        control = nls.lm.control(maxiter = 1024))
+coefficients(stability_model)
+```
+
+
+Now that the `nlsLM` function has defined certain values for $\theta_1$ and $\theta_2$, the model can be used to estimate the variable importance stability for any number of trees:
+
+```{r fig.width=6, fig.height=4.5, fig.align='center'}
+TwoPLmodel = function(number_of_trees, theta1, theta2){
+  1 / (1+(theta1/number_of_trees)^theta2)
+}
+estimated_stability = data.frame(number_of_trees = seq(10, 100000, 10), 
+                                 variable_importance_stability = TwoPLmodel(seq(10, 100000, 10), 
+                                                                            coefficients(stability_model)[1], 
+                                                                            coefficients(stability_model)[2]))
+plot(estimated_stability$variable_importance_stability ~ estimated_stability$number_of_trees,
+     type="l", col="navyblue", lwd=3, xlab="number_of_trees", ylab="variable_importance_stability")
+```
+
+One can see that the variable importance stability increases rapidly with the number of trees at first but levels off as the tree count grows. This diminishing return suggests that adding more trees beyond a certain point has minimal impact on variable importance stability. Since computation time increases linearly with the number of trees, an optimal trade-off point can be identified. For instance, we could define the optimal number of trees as the point where adding additional trees increases variable importance stability by only $10^{-6}$ or less. 
+
+
+## Using optRF to optimise random forest for variable importance estimation
+
+The optimal number of trees in a random forest model is specific to the data set being analyzed. Therefore, it must be estimated for each new data set to achieve stable variable importance estimates and reliable results. The `optRF` package provides a streamlined approach to determine the optimal number of trees automatically. Therefore, it performs the calculations as shown above with the difference that random forest is not only repeated twice but ten times to ensure more stable estimates of the variable importance stability. It calculates variable importance stability using the intraclass correlation between the results of these repetitions. Besides this, all the code above can be run by using the `opt_importance` function from the `optRF` package. To use it, the response variable from the training data set is passed to the `y` argument and the predictor variables from the training data set are provided in the `X` argument:
+
+```{r message=FALSE, warning=FALSE}
+set.seed(123)
+optRF_result = opt_importance(y=SNPdata[,1], X=SNPdata[,-1])
+```
+
+Once the `opt_importance` function has completed, the recommended number of trees and the expected stability of the random forest model can be accessed as follows:
+
+```{r message=FALSE}
+optRF_result$recommendation
+optRF_result$expected_RF_stability
+```
+
+Here, the optimal number of trees to receive stable variable importance estimates is 40,000 trees. Using random forest with this number of trees, one can expect a variable importance stability of 0.96. 
+
+### The effect of the optimal number of trees
+Now that the optimal number of trees has been determined, we can repeat the analysis from above to see how the stability of random forest changed when running random forest with 40,000 trees:
+
+
+```{r message=FALSE, fig.width=6, fig.height=4.5, fig.align='center'}
+set.seed(123)
+RFmodel_1 = ranger(y=SNPdata[,1], x=SNPdata[,-1], num.trees=optRF_result$recommendation,
+                 write.forest = TRUE, importance="permutation")
+D_VI_1 = data.frame(variable = names(SNPdata)[-1], 
+                  importance = RFmodel_1$variable.importance)
+
+set.seed(321)
+RFmodel_2 = ranger(y=SNPdata[,1], x=SNPdata[,-1], num.trees=optRF_result$recommendation,
+                   write.forest = TRUE, importance="permutation")
+D_VI_2 = data.frame(variable = names(SNPdata)[-1], 
+                    importance = RFmodel_2$variable.importance)
+
+M = merge(D_VI_1, D_VI_2, by="variable")
+plot(M$importance.x, M$importance.y,
+     xlab="Variable importances in the first run", ylab="Variable importances in the second run")
+cor(M$importance.x, M$importance.y)
+```
+
+With 40,000 trees, the correlation between the variable importance estimates in the two repetitions is 0.96, a dramatic improvement over the correlation of 0.27 observed with 500 trees. The scatter plot of variable importance estimates from the two runs shows a tightly clustered pattern, confirming consistency in the results and the high correlation aligns with the stability value predicted by `opt_importance`, demonstrating the reliability of the function's recommendation.
+
+
+## Using optRF to optimise random forest for variable selection
+With stable variable importance estimates obtained, these can now be utilized to identify and select the most important variables from the data set. The selection process first involves defining a threshold for the number of variables to be selected. Subsequently, in each repetition of random forest, the variables with the highest variable importance estimates can be classified as `selected` and the rest of the variables as `rejected`. Fleiss’ Kappa is a suitable metric for quantifying the stability of the variable selection process, as it measures agreement among these categorizations in repeated analyses.
+
+The number of variables selected should align with the number of truly important variables in the data set. Instead of selecting an arbitrary number, this should be data-driven. By default, `opt_importance` will determine the optimal number of trees to receive stable selections when selecting the top 5% of variables from the data set. With this data set, this would mean to select for the 250 most important variables in the data set. However, the assumption that 250 important variables exist in the data set may not actually hold. 
+
+To better estimate the number of genuinely important variables in the data set, random forest can be run with the number of trees that was recommended by the `opt_importance` function to get stable variable importance estimates, which can be visualised using a histogram:
+
+```{r message = FALSE, warning=FALSE, fig.width=6, fig.height=4.5, fig.align='center'}
+set.seed(123)
+RFmodel = ranger(y=SNPdata[,1], x=SNPdata[,-1], num.trees=optRF_result$recommendation,
+                   write.forest = TRUE, importance="permutation")
+hist(RFmodel$variable.importance, 
+     main="Histogram of variable importances", xlab="")
+```
+
+One can see that the majority of variables have a variable importance between -5 and 5. Only a small subset of variables has importance scores above 5, likely indicating genuinely important predictors, which should be selected. To refine the selection process, we can calculate the number of variables with variable importance above 5: 
+!!!!!!!!!!! Bis hier hin geändert!!!!!!!!!!!!!!!!!!!
+
+```{r fig.width=6, fig.height=4.5, fig.align='center'}
+hist(RFmodel$variable.importance, ylim=c(0,20), 
+     main="Histogram of variable importances", xlab="")
+abline(v=5, col="red", lwd=4)
+selection.size = sum(RFmodel$variable.importance>5)
+selection.size
+```
+
+In this case, 39 variables have a variable importance greater than 5. So, we can run the `opt_importance` function again and this time specify that the 39 most important variables should be selected. This can be adjusted in the `alpha` argument of the function where the user can either insert a full number as the number of variables to select or a relative number specifying the relative amount of variables from the data set to be selected:
+
+
+```{r message = FALSE, warning=FALSE}
+set.seed(123)
+optRF_result = opt_importance(y=SNPdata[,1], X=SNPdata[,-1], 
+                              recommendation = "selection",
+                              alpha = selection.size)
+```
+
+Now with the result from this application of the `opt_importance` function, the optimal number of trees for selecting the 39 most important variables can be assessed from the output as above: 
+
+```{r message=FALSE}
+optRF_result$recommendation
+optRF_result$expected_RF_stability
+```
+
+One can see that the optimal number of trees was now estimated to be 42,000 which would lead to a variable importance stability of 0.96 and a selection stability 0f 0.94. With this optimised number of trees, we can repeat the analysis from above to see how often the same variables would be selected in two repeated runs of random forest:
+
+```{r message = FALSE, warning=FALSE}
+set.seed(123)
+RFmodel_1 = ranger(y=SNPdata[,1], x=SNPdata[,-1], num.trees=optRF_result$recommendation,
+                   write.forest = TRUE, importance="permutation")
+D_VI_1 = data.frame(variable = names(SNPdata)[-1],
+                    importance = RFmodel_1$variable.importance)
+D_VI_1 = D_VI_1[order(D_VI_1$importance, decreasing=TRUE),]
+D_VI_1$variable_ranking = c(1:nrow(D_VI_1))
+selected_variables_1 = D_VI_1[1:selection.size,1]
+
+set.seed(321)
+RFmodel_2 = ranger(y=SNPdata[,1], x=SNPdata[,-1], num.trees=optRF_result$recommendation,
+                   write.forest = TRUE, importance="permutation")
+D_VI_2 = data.frame(variable = names(SNPdata)[-1],
+                    importance = RFmodel_2$variable.importance)
+D_VI_2 = D_VI_2[order(D_VI_2$importance, decreasing=TRUE),]
+D_VI_2$variable_ranking = c(1:nrow(D_VI_2))
+selected_variables_2 = D_VI_2[1:selection.size,1]
+
+sum(selected_variables_1 %in% selected_variables_2)
+```
+
+One can see that 36 out of the 39 variables are selected equally in the two repeated runs of random forest with the recommended number of trees which translates to 92% of the variables to be selected in a stable way.  
+
+
+## Fine-tuning the optimal number of trees for variable selection
+
+This approach was useful to estimate the number of variables that are important from the data set and to determine the number of trees necessary to receive stable selections of the variables. However, one could also see that the variables that are selected in repeated runs of random forest still change to some degree. Nevertheless, since the relationship between the stability and the number of trees in random forest is now known, the other functions of the `optRF` package can now be used to determine the number of trees that will lead to stable selections. Furthermore, these functions will also estimate the computation time required for the machine on which the `opt_importance` function was run. 
+
+First, the relationship between the stability and the number of trees can be easily visualised using the `plot_stability` function. Hereby, the user can specify in which interval the relationship should be visualised, which measure (variable importance stability or selection stability) should be visualised, and if the recommended number of trees should be included in the plot. Let's visualise the selection stability for 0 to 100,000 trees without adding the recommended number of trees: 
+
+```{r fig.width=6, fig.height=4.5, fig.align='center'}
+plot_stability(optRF_result, measure="selection", 
+               0, 100000, add.recommendation = FALSE, ylim=c(0, 1))
+abline(h=1, col="red")
+```
+
+One can see that even with 100,000 trees it would not yet be possible to select variables with a perfect stability. However, since the relationship between stability and number of trees for this data set is known, the number of trees necessary to reach a certain selection stability can be estimated using the `estimate_numtrees` function: 
+
+```{r message=FALSE}
+estimate_numtrees(optRF_result, measure="selection", for_stability = 0.9)
+estimate_numtrees(optRF_result, measure="selection", for_stability = 0.95)
+estimate_numtrees(optRF_result, measure="selection", for_stability = 0.99)
+estimate_numtrees(optRF_result, measure="selection", for_stability = 0.999)
+```
+
+The output of the `estimate_numtrees` function shows the desired selection stability together with the number of trees that would be necessary to reach such a selection stability and the time that the `ranger` function would require to run random forest with such a number of trees. One can see that the increase from a selection stability of 0.9 to 0.95 would more than double the computation time of random forest. To increase the selection stability from 0.95 to 0.99 would increase the computation time of random forest almost by a factor ten and to increase the selection stability from 0.99 to 0.999 would increase the computation time by a factor 20. 
+
+However, it must be pointed out that `opt_importance` estimates the computation time for random forest to compute on the machine where the function was run. Thus, on another machine, this process may take longer or less time. Furthermore, `ranger` can compute random forest parallel on multiple threads. The number of threads can be set in the `num.threads` argument of the `ranger` function. In order to give a realistic estimate of the computation time, the `num.threads` can also be set in the `opt_importance` function. 
+
+Let's assume that after using the `opt_importance` function, we decide arbitrarily to use 500,000 trees for variable selection with random forest. Based on the results from the `estimate_numtrees` function, we know that this will lead to a selection stability slightly above 0.99. However, in order to publish the results together with the exact variable importance and selection stability, we can use the function `estimate_stability` with this certain number of trees: 
+
+```{r message=FALSE}
+estimate_stability(optRF_result, with_num.trees=500000)
+```
+
+This shows that when using random forest for variable selection with 500,000 trees and this data set, the variable importance stability is 0.9965 and the selection stability is 0.9903. These values now give others the possibility to assess the reproducibility of the results and show that the results of the analysis are reliable. Thus, the variable importance and selection stability should always be given when publishing variable selection based on random forest. 
+
+
+
+## Customising the `opt_importance` function
+This vignette showed one application of the `opt_importance` function where one could assume that only around 0.1% of the variables in the data set affect the response. Next, the number of trees was adjusted to perform stable variable selection. However, this step would be unnecessary for a user who knows exactly how many variables should be selected from the data set. In this case, the number of variables to be selected could be inserted right away in the `alpha` argument of the `opt_importance` function. 
+
+Next to defining a number of trees based on the results from the `estimate_numtrees` and the `estimate_stability` functions, `opt_importance` would define the optimal number of trees as the number of trees from where on adding more trees to random forest would increase the variable importance stability by $10^{-6}$ or less. This threshold was set arbitrarily and can be adjusted in the `rec.thresh` argument. Moreover, next to `importance` or `selection`, the user can also insert `none` in the `recommendation` argument of the `opt_importance` function. In this case, `opt_importance` would only analyse the relationship between the number of trees and the corresponding stability of random forest without giving a recommendation. The user can then use the resulting object to determine the optimal number of trees using the `estimate_numtrees` function.
+
+The user also has the possibility to adjust the number of repetitions in the `number.repetitions` argument and the specific numbers of trees to analyse the relationship between the number of trees and the corresponding stability in the `num.trees_values` argument. Using less repetitions and setting smaller or less values for the numbers of trees would make the computation of `opt_importance` faster, however, it would also increase the probability to receive varying recommendations. We recommend not to adjust these arguments.
+
+Next to the arguments described here, the user can also add arguments from the `ranger` function to customise the application of `opt_importance`. This gives the user the possibility to adjust the `num.threads` argument to allow for parallel computing or add specific values for hyperparameters in random forest such as `mtry`, `min.node.size`, or `sample.fraction`. 
+
+
+
+## Conclusions
+While random forest has many advantages and can be easily used to estimate the importance of the variables in a data set, it must be taken into consideration that random forest is a non-deterministic method that can lead to different variable importance estimates even when analysing the same data set. The stability of random forest depends strongly on the number of trees which not only increases stability but also computation time. The `optRF` package is very useful to quickly model the relationship between the number of trees and the corresponding stability of random forest. Using the `opt_importance` function, the relationship between the number of trees and the stability of random forest for a specific data set can be analysed and used to determine the optimal number of trees to reach satisfying stabilities and increase reproducibility. Researchers are encouraged to evaluate the stability of their chosen tree count to ensure reliable and reproducible results when using random forest. 
