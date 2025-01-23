@@ -320,10 +320,10 @@ This vignette illustrated an application of the `opt_prediction` function to pre
 In this example, the optimal number of trees was defined as the number of trees at which adding more trees would increase the prediction stability by $10^{-6}$ or less. This threshold is arbitrary and can be customized using the `rec.thresh` argument to fit specific requirements.
 Additionally, the `recommendation` argument offers further flexibility:
 
-*   Set to `"importance"` or `"selection"` to optimize based on prediction stability or selection stability, respectively.
+*   Set to `"prediction"` or `"selection"` to optimize based on prediction stability or selection stability, respectively.
 *   Set to `"none"` to analyze the relationship between the number of trees and stability without receiving a specific recommendation. The user can then manually determine the optimal number of trees using the `estimate_numtrees` function.
 
-Users can also adjust computational settings to tailor the opt_prediction function to their needs:
+Users can also adjust computational settings to tailor the `opt_prediction` function to their needs:
 
 *   Number of repetitions:
     Use the `number.repetitions` argument to control how many repetitions are performed. Fewer repetitions will reduce computation time but may lead to more variable results.
