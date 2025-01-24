@@ -20,9 +20,9 @@ RoxygenNote: 7.3.2
 Depends: 
     R (>= 3.6.0)
 Imports: 
-    minpack.lm (>= 1.2-4),
-    ranger (>= 0.16.0),
-    irr (>= 0.84.1),
+    minpack.lm (>= 1.2-2),
+    ranger (>= 0.12.0),
+    irr (>= 0.82),
     graphics,
     methods,
     stats
