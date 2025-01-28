@@ -30,6 +30,7 @@ estimate_stability = function(optRF_object, with_num.trees = c(1000, 5000, 10000
   if(!is.numeric(with_num.trees) | any(with_num.trees < 1)){
     stop("The with_num.trees parameter needs to be a vector of positive numbers")
   }
+  with_num.trees = ceiling(with_num.trees)
 
   runtime_model = lm(optRF_object$result.table$run.time ~ optRF_object$result.table$num.trees_values)
 
