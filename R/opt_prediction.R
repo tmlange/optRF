@@ -93,6 +93,7 @@ opt_prediction = function(y, X, X_Test=NULL,
   if(!is.numeric(num.trees_values) | any(num.trees_values < 1)){
     stop("The num.tree_values need to be a vector of positive numbers.")
   }
+  num.trees_values = ceiling(num.trees_values)
 
   if(variable.number < 100000){
     test_seq = seq(10, 1000000, 10)

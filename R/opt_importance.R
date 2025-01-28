@@ -78,6 +78,7 @@ opt_importance = function(y, X, number.repetitions=10, alpha = 0.05, num.trees_v
   if(!is.numeric(num.trees_values) | any(num.trees_values < 1)){
     stop("The num.tree_values need to be a vector of positive numbers")
   }
+  num.trees_values = ceiling(num.trees_values)
 
   # Run the analysis
 
