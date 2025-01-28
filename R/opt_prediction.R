@@ -76,7 +76,9 @@ opt_prediction = function(y, X, X_Test=NULL,
 
   # Verify variables of the test data set
   if(is.null(X_Test)){
-    message("No test data were entered. Out of bag data will be used.")
+    if(verbose){
+      message("No test data were entered. Out of bag data will be used.")
+    }
     sample.IDs = paste0("ID_", c(1:nrow(X)))
   }
   else{
