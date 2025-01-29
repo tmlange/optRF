@@ -203,17 +203,17 @@ opt_prediction = function(y, X, X_Test=NULL,
       pred_stability = kappam.fleiss(D_preds)$value
     }
     tmp_res = data.frame(num.trees_values = num.trees_values[i],
-                         pred.stability = pred_stability,
-                         selection.stability = kappam.fleiss(D_selection)$value,
-                         run.time = time.taken/number.repetitions)
+                         pred_stability = pred_stability,
+                         selection_stability = kappam.fleiss(D_selection)$value,
+                         computation_time = time.taken/number.repetitions)
     summary.result = rbind(summary.result, tmp_res)
 
     if(visualisation == "prediction"){
-      create_stability_plot(summary.result$pred.stability, summary.result$num.trees_values, "prediction stability")
+      create_stability_plot(summary.result$pred_stability, summary.result$num.trees_values, "prediction stability")
     }
 
     if(visualisation == "selection"){
-      create_stability_plot(summary.result$selection.stability, summary.result$num.trees_values, "selection stability")
+      create_stability_plot(summary.result$selection_stability, summary.result$num.trees_values, "selection stability")
     }
 
     # If there are more than four data points, model the relationship(s)
@@ -221,21 +221,21 @@ opt_prediction = function(y, X, X_Test=NULL,
 
       # non linear modelling of the relationship between prediction stability and num.trees values
       tryCatch({
-        non.lin.mod.pv = non_linear_modelling(summary.result, "pred.stability", test_seq, visualisation == "prediction")
+        non.lin.mod.pv = non_linear_modelling(summary.result, "pred_stability", test_seq, visualisation == "prediction")
         D_est.pv = data.frame(num.trees = test_seq,
                               estimated_prediction_stability = TwoPLmodel(test_seq, non.lin.mod.pv$m$getPars()[1], non.lin.mod.pv$m$getPars()[2]))
       }, error=function(e){})
 
       # non linear modelling of the relationship between selection stability and num.trees values
       tryCatch({
-        non.lin.mod.sv = non_linear_modelling(summary.result, "selection.stability", test_seq, visualisation == "selection")
+        non.lin.mod.sv = non_linear_modelling(summary.result, "selection_stability", test_seq, visualisation == "selection")
         D_est.sv = data.frame(num.trees = test_seq,
                               estimated_selection_stability = TwoPLmodel(test_seq, non.lin.mod.sv$m$getPars()[1], non.lin.mod.sv$m$getPars()[2]))
       }, error=function(e){})
 
       # linear modelling of the relationship between run time and num.trees values
       tryCatch({
-        runtime_model = lm(summary.result$run.time ~ summary.result$num.trees_values)
+        runtime_model = lm(summary.result$computation_time ~ summary.result$num.trees_values)
         D_est.rt = data.frame(num.trees = test_seq,
                               estimated_run_time = estimate_runtime(test_seq, runtime_model$coefficients[1], runtime_model$coefficients[2]))
       }, error=function(e){})
@@ -342,7 +342,7 @@ opt_prediction = function(y, X, X_Test=NULL,
       rownames(modelpara.matrix) = c("Prediction_stability", "Selection_stability")
 
       RFstab.matrix = matrix(c(rec.num.trees, estimated_final_prediction_stability, estimated_final_selection_stability, estimated_final_run_time))
-      rownames(RFstab.matrix) = c("num.trees", "Prediction_stability", "Selection_stability", "Run_time")
+      rownames(RFstab.matrix) = c("num.trees", "Prediction_stability", "Selection_stability", "Computation_time")
     }
 
     # if prediction stability could be modeled but selection stability could not be modeled
@@ -352,7 +352,7 @@ opt_prediction = function(y, X, X_Test=NULL,
       rownames(modelpara.matrix) = c("Prediction_stability")
 
       RFstab.matrix = matrix(c(rec.num.trees, estimated_final_prediction_stability, estimated_final_run_time))
-      rownames(RFstab.matrix) = c("num.trees", "Prediction_stability", "Run_time")
+      rownames(RFstab.matrix) = c("num.trees", "Prediction_stability", "Computation_time")
     }
 
     # If selection stability could be modeled but prediction stability could not
@@ -362,7 +362,7 @@ opt_prediction = function(y, X, X_Test=NULL,
       rownames(modelpara.matrix) = c("Selection_stability")
 
       RFstab.matrix = matrix(c(rec.num.trees, estimated_final_selection_stability, estimated_final_run_time))
-      rownames(RFstab.matrix) = c("num.trees", "Selection_stability", "Run_time")
+      rownames(RFstab.matrix) = c("num.trees", "Selection_stability", "Computation_time")
     }
     colnames(modelpara.matrix) = c("Inflection_point", "Slope")
     colnames(RFstab.matrix) = c("Value")

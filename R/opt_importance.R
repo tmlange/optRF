@@ -126,17 +126,17 @@ opt_importance = function(y, X, number.repetitions=10, alpha = 0.05, num.trees_v
     D_selection = D_selection[,-1]
 
     tmp_res = data.frame(num.trees_values = num.trees_values[i],
-                         VI.stability = icc(D_VI)$value,
-                         selection.stability = kappam.fleiss(D_selection)$value,
-                         run.time = time.taken/number.repetitions)
+                         VI_stability = icc(D_VI)$value,
+                         selection_stability = kappam.fleiss(D_selection)$value,
+                         computation_time = time.taken/number.repetitions)
     summary.result = rbind(summary.result, tmp_res)
 
     if(visualisation == "importance"){
-      create_stability_plot(summary.result$VI.stability, summary.result$num.trees_values, "variable importance stability")
+      create_stability_plot(summary.result$VI_stability, summary.result$num.trees_values, "variable importance stability")
     }
 
     if(visualisation == "selection"){
-      create_stability_plot(summary.result$selection.stability, summary.result$num.trees_values, "selection stability")
+      create_stability_plot(summary.result$selection_stability, summary.result$num.trees_values, "selection stability")
     }
 
     # If there are more than four data points, perform non linear modelling
@@ -144,21 +144,21 @@ opt_importance = function(y, X, number.repetitions=10, alpha = 0.05, num.trees_v
 
       # non linear modelling of the relationship between variable importance stability and num.trees values
       tryCatch({
-        non.lin.mod.VIv <- non_linear_modelling(summary.result, "VI.stability", test_seq, visualisation == "importance")
+        non.lin.mod.VIv <- non_linear_modelling(summary.result, "VI_stability", test_seq, visualisation == "importance")
         D_est.VIv = data.frame(num.trees = test_seq,
                                estimated_VI_stability = TwoPLmodel(test_seq, non.lin.mod.VIv$m$getPars()[1], non.lin.mod.VIv$m$getPars()[2]))
       }, error=function(e){})
 
       # non linear modelling of the relationship between selection stability and num.trees values
       tryCatch({
-        non.lin.mod.sv <- non_linear_modelling(summary.result, "selection.stability", test_seq, visualisation == "selection")
+        non.lin.mod.sv <- non_linear_modelling(summary.result, "selection_stability", test_seq, visualisation == "selection")
         D_est.sv = data.frame(num.trees = test_seq,
                               estimated_selection_stability = TwoPLmodel(test_seq, non.lin.mod.sv$m$getPars()[1], non.lin.mod.sv$m$getPars()[2]))
       }, error=function(e){})
 
       # linear modelling of the relationship between run time and num.trees values
       tryCatch({
-        runtime_model = lm(summary.result$run.time ~ summary.result$num.trees_values)
+        runtime_model = lm(summary.result$computation_time ~ summary.result$num.trees_values)
         D_est.rt = data.frame(num.trees = test_seq,
                               estimated_run_time = estimate_runtime(test_seq, runtime_model$coefficients[1], runtime_model$coefficients[2]))
       }, error=function(e){})
@@ -267,7 +267,7 @@ opt_importance = function(y, X, number.repetitions=10, alpha = 0.05, num.trees_v
       rownames(modelpara.matrix) = c("Variable_importance_stability", "Selection_stability")
 
       RFstab.matrix = matrix(c(rec.num.trees, estimated_final_VI_stability, estimated_final_selection_stability, estimated_final_run_time))
-      rownames(RFstab.matrix) = c("num.trees", "Variable_importance_stability", "Selection_stability", "Run_time")
+      rownames(RFstab.matrix) = c("num.trees", "Variable_importance_stability", "Selection_stability", "Computation_time")
     }
 
     # If variable importance stability could be modeled but selection stability could not
@@ -277,7 +277,7 @@ opt_importance = function(y, X, number.repetitions=10, alpha = 0.05, num.trees_v
       rownames(modelpara.matrix) = c("Variable_importance_stability")
 
       RFstab.matrix = matrix(c(rec.num.trees, estimated_final_VI_stability, estimated_final_run_time))
-      rownames(RFstab.matrix) = c("num.trees", "Variable_importance_stability", "Run_time")
+      rownames(RFstab.matrix) = c("num.trees", "Variable_importance_stability", "Computation_time")
     }
 
     # If selection stability could be modeled but variable importance stability could not
@@ -287,7 +287,7 @@ opt_importance = function(y, X, number.repetitions=10, alpha = 0.05, num.trees_v
       rownames(modelpara.matrix) = c("Selection_stability")
 
       RFstab.matrix = matrix(c(rec.num.trees, estimated_final_selection_stability, estimated_final_run_time))
-      rownames(RFstab.matrix) = c("num.trees", "Selection_stability", "Run_time")
+      rownames(RFstab.matrix) = c("num.trees", "Selection_stability", "Computation_time")
     }
     colnames(modelpara.matrix) = c("Inflection_point", "Slope")
     colnames(RFstab.matrix) = c("Value")
