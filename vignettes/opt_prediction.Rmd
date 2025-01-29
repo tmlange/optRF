@@ -256,7 +256,7 @@ As shown in the plot and the correlation result, the predictions from the two re
 
 
 ### Optimising random forest for prediction based decision-making processes
-While stable predictions are essential, it is equally important to ensure stability in the decisions based on these predictions. In this case, the goal was to select the five individuals from the test dataset with the highest predicted response. We now examine how the optimised number of trees impacts the consistency of these selections across two runs:
+While stable predictions are essential, it is equally important to ensure stability in the decisions based on these predictions. In this case, the goal was to select the five individuals from the test data set with the highest predicted response. We now examine how the optimised number of trees impacts the consistency of these selections across two runs:
 
 ```{r message=FALSE}
 selected_individuals_1

@@ -15,7 +15,7 @@ knitr::opts_chunk$set(
 ```
 ## Introduction 
 
-Random forest is a widely used machine learning technique, particularly effective for tasks such as variable selection, where the importance of each variable is assessed and the most significant variables are chosen. Despite its numerous advantages, it is important to recognize that random forest is inherently non-deterministic. This means that repeating the analysis, even with the same dataset, can lead to variations in variable importance estimates due to the stochastic nature of the algorithm.
+Random forest is a widely used machine learning technique, particularly effective for tasks such as variable selection, where the importance of each variable is assessed and the most significant variables are chosen. Despite its numerous advantages, it is important to recognize that random forest is inherently non-deterministic. This means that repeating the analysis, even with the same data set, can lead to variations in variable importance estimates due to the stochastic nature of the algorithm.
 
 To demonstrate the functionality of the `optRF` package, we will use the `SNPdata` data set included in the package.  This data set contains in the first column the yield of 250 wheat individuals as well as 5000 genomic markers (so called SNP markers) that can contain either the value 0 or 2. While this example focuses on genomic research, the `optRF` package is versatile and can optimize random forest for any type of data set. Before proceeding, ensure the necessary packages are loaded into your R environment. In addition to `optRF`, the `ranger` package (for efficient random forest implementation) and `minpack.lm` package (for optimization tasks) are required:
 
@@ -248,7 +248,7 @@ In this analysis, 36 out of the 39 selected variables overlap between the two re
 
 ## Fine-tuning the optimal number of trees for variable selection
 
-This approach effectively estimates the number of important variables in the dataset and determines the optimal number of trees necessary to achieve stable variable selection. However, it also highlights that even with optimization, some variability persists in the selected variables across repeated random forest runs. Nonetheless, with the relationship between stability and the number of trees now established, additional functions from the `optRF` package can be utilized to further refine the analysis, including estimating computation time specific to the machine used for the `opt_importance` function.
+This approach effectively estimates the number of important variables in the data set and determines the optimal number of trees necessary to achieve stable variable selection. However, it also highlights that even with optimization, some variability persists in the selected variables across repeated random forest runs. Nonetheless, with the relationship between stability and the number of trees now established, additional functions from the `optRF` package can be utilized to further refine the analysis, including estimating computation time specific to the machine used for the `opt_importance` function.
 
 The relationship between stability and the number of trees can be conveniently visualized using the `plot_stability` function. This visualization allows users to specify the range of tree counts to consider, the stability measure of interest (variable importance stability or selection stability), and whether the recommended number of trees should be highlighted. For instance, visualizing selection stability from 0 to 100,000 trees without indicating the recommended number of trees can be achieved as follows:
 
@@ -258,7 +258,7 @@ plot_stability(optRF_result, measure="selection",
 abline(h=1, col="red")
 ```
 
-The plot demonstrates that even with 100,000 trees, perfect selection stability is not achievable. However, because the relationship between stability and tree count is known for this dataset, the number of trees required to achieve specific levels of selection stability can be estimated using the `estimate_numtrees` function. For example:
+The plot demonstrates that even with 100,000 trees, perfect selection stability is not achievable. However, because the relationship between stability and tree count is known for this data set, the number of trees required to achieve specific levels of selection stability can be estimated using the `estimate_numtrees` function. For example:
 
 ```{r message=FALSE}
 estimate_numtrees(optRF_result, measure="selection", for_stability = 0.9)
@@ -305,8 +305,8 @@ Next to the arguments described here, the user can also add arguments from the `
 
 
 ## Conclusions
-While random forest offers numerous advantages and is a powerful tool for estimating variable importance in a dataset, it is essential to recognize its inherent non-deterministic nature. This characteristic can result in variability in variable importance estimates, even when analyzing the same dataset multiple times. The stability of random forest outputs is heavily influenced by the number of trees used in the model. While increasing the number of trees enhances stability, it also leads to greater computational demands.
+While random forest offers numerous advantages and is a powerful tool for estimating variable importance in a data set, it is essential to recognize its inherent non-deterministic nature. This characteristic can result in variability in variable importance estimates, even when analyzing the same data set multiple times. The stability of random forest outputs is heavily influenced by the number of trees used in the model. While increasing the number of trees enhances stability, it also leads to greater computational demands.
 
-The optRF package provides an effective solution for addressing this trade-off by enabling the rapid modeling of the relationship between the number of trees and the stability of random forest. Through its opt_importance function, users can analyze this relationship for a specific dataset and determine the optimal number of trees required to achieve desired stability levels while balancing computational efficiency.
+The optRF package provides an effective solution for addressing this trade-off by enabling the rapid modeling of the relationship between the number of trees and the stability of random forest. Through its opt_importance function, users can analyze this relationship for a specific data set and determine the optimal number of trees required to achieve desired stability levels while balancing computational efficiency.
 
 Researchers are strongly encouraged to assess the stability of their chosen tree count to ensure reliable and consistent results when using random forest.  
