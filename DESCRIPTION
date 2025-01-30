@@ -1,6 +1,6 @@
 Package: optRF
 Type: Package
-Title: Increasing the stability of random forest by optimising the number of trees
+Title: Optimising random forest stability by determining the optimal number of trees
 Version: 1.1.0-3
 Author: c(person(given = "Thomas Martin",
                  family = "Lange",
@@ -13,6 +13,8 @@ Author: c(person(given = "Thomas Martin",
                  comment = c(ORCID = "0000-0002-6093-8522")))
 Maintainer: Thomas Martin Lange <thomas.lange@uni-goettingen.de>
 Description: Calculating the stability of random forest with certain numbers of trees. The non-linear relationship between stability and numbers of trees is described using a logistic regression model and used to estimate the optimal number of trees.
+BugReports: https://github.com/tmlange/optRF/issues
+URL: https://github.com/tmlange/optRF
 License: GPL (>= 2)
 Encoding: UTF-8
 LazyData: true
