@@ -15,7 +15,6 @@ summary.opt_prediction_object = function(object, ...){
         cat("Recommended number of trees: ", object$recommendation, "\n",
             "Expected prediction stability: ", object$expected_RF_stability[2], "\n",
             "Expected computation time (sec): ", object$expected_RF_stability[3], "\n", sep = "")
-
       }
       if(row.names(object$expected_RF_stability)[2] =="Selection_stability"){
         cat("Recommended number of trees: ", object$recommendation, "\n",

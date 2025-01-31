@@ -32,7 +32,7 @@ estimate_stability = function(optRF_object, with_num.trees = c(1000, 5000, 10000
   }
   with_num.trees = ceiling(with_num.trees)
 
-  runtime_model = lm(optRF_object$result.table$run.time ~ optRF_object$result.table$num.trees_values)
+  runtime_model = lm(optRF_object$result.table$computation_time ~ optRF_object$result.table$num.trees_values)
 
   # estimate RF stability for prediction estimation
   if(is(optRF_object, "opt_prediction_object")){
