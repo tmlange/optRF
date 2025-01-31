@@ -5,8 +5,8 @@
 \title{Optimise random forest for prediction}
 \usage{
 opt_prediction(
-  y = NULL,
-  X = NULL,
+  y,
+  X,
   X_Test = NULL,
   number.repetitions = 10,
   alpha = 0.15,
@@ -16,6 +16,7 @@ opt_prediction(
   recommendation = c("prediction", "selection", "none"),
   rec.thresh = 1e-06,
   round.recommendation = c("thousand", "hundred", "ten", "none"),
+  verbose = TRUE,
   ...
 )
 }
@@ -24,9 +25,9 @@ opt_prediction(
 
 \item{X}{A data frame containing the explanatory variables in the training data set. The number of rows must be equal to the number of elements in y.}
 
-\item{X_Test}{A data frame containing the explanatory variables of the test data set. If not entered, a test data set will be randomly generated.}
+\item{X_Test}{A data frame containing the explanatory variables of the test data set. If not entered, the out of bag data will be used.}
 
-\item{number.repetitions}{Number of repetitions of random forest to estimate the prediction stability.}
+\item{number.repetitions}{Number of repetitions of random forest to estimate the stability.}
 
 \item{alpha}{The number of best individuals to be selected in the test data set based on their predicted response values. If < 1, alpha will be considered to be the relative amount of individuals in the test data set.}
 
@@ -34,13 +35,15 @@ opt_prediction(
 
 \item{visualisation}{Can be set to "prediction" to draw a plot of the prediction stability or "selection" to draw a plot of the selection stability for the numbers of trees to be analysed.}
 
-\item{select_for}{What should be selected? In random forest classification, this must be set to the value of the desired class. In random forest regression, this can be set as "high" (default) to select the individuals with the highest predicted value, "low" to select the individuals with the lowest predicted value, or "zero" to select the individuals which predicted value is closest to zero.}
+\item{select_for}{What should be selected? In random forest classification, this must be set to a vector containing the values of the desired classes. In random forest regression, this can be set as "high" (default) to select the individuals with the highest predicted value, "low" to select the individuals with the lowest predicted value, or "zero" to select the individuals which predicted value is closest to zero.}
 
 \item{recommendation}{If set to "prediction" (default) or "selection", a recommendation will be given based on optimised prediction or selection stability. If set to be "none", the function will analyse the stability of random forest with the inserted numbers of trees without giving a recommendation.}
 
 \item{rec.thresh}{If the number of trees leads to an increase of stability smaller or equal to the value specified, this number of trees will be recommended. Default is 1e-6.}
 
 \item{round.recommendation}{Setting to what number the recommended number of trees should be rounded to. Options: "none", "ten", "hundred", "thousand" (default).}
+
+\item{verbose}{Show computation status}
 
 \item{...}{Any other argument from the ranger function.}
 }

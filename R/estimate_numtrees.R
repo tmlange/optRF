@@ -2,9 +2,9 @@
 #'
 #' @description Estimate the number of trees required to achieve certain stability of random forest
 #'
-#' @param optRF_object An optRF_object, either the result from the \link{opt_importance} or the \link{opt_prediction} function.
 #' @param measure A character string indicating which stability measure is to be analysed. One of "selection" (default, analyses selection stability), "prediction" (analyses prediction stability) or "importance" (analyses variable importance stability).
 #' @param for_stability Either a single stability value or a vector containing multiple stability values for which the number of trees should be estimated.
+#' @inheritParams estimate_plot_shared_parameters
 #'
 #' @return A data frame summarising the estimated stability and run time in seconds for the given num.trees values.
 #'
@@ -27,25 +27,14 @@ estimate_numtrees = function(optRF_object, measure = c("selection","importance",
     stop("Invalid object was inserted. The inserted object must be the result from the opt_prediction or opt_importance function.")
   }
 
-  # If the measure argument is invalid, give an error message
-  if(identical(measure, c("selection", "importance", "prediction"))){
-    measure = "selection"
-  }
-  if(length(measure) != 1 || !(measure %in% c("selection","importance","prediction"))){
-    stop("Invalid input for measure. The measure must be either \"selection\", \"importance\", or \"prediction\".")
-  }
+  # Check value of measure
+  measure = match.arg(measure)
 
   if(!is.numeric(for_stability) | any(for_stability < 0)){
     stop("The for_stability parameter needs to be a vector of positive numbers")
   }
 
-  TwoPLmodel.inv = function(for_stability, p1, p2){
-    p1/((1/for_stability)-1)^p2
-  }
-  estimate_runtime = function(at, p1, p2){
-    as.numeric(p1 + at*p2)
-  }
-  runtime_model = lm(optRF_object$result.table$run.time ~ optRF_object$result.table$num.trees_values)
+  runtime_model = lm(optRF_object$result.table$computation_time ~ optRF_object$result.table$num.trees_values)
 
   # estimate RF stability for prediction estimation
   if(is(optRF_object, "opt_prediction_object")){
@@ -60,7 +49,7 @@ estimate_numtrees = function(optRF_object, measure = c("selection","importance",
       opt_numtrees = TwoPLmodel.inv(for_stability, optRF_object$model.parameters[1,1], optRF_object$model.parameters[1,2])
       D_est = data.frame(prediction_stability = for_stability,
                          opt_numtrees = ceiling(opt_numtrees),
-                         run_time = estimate_runtime(opt_numtrees, runtime_model$coefficients[1], runtime_model$coefficients[2]))
+                         computation_time = estimate_runtime(opt_numtrees, runtime_model$coefficients[1], runtime_model$coefficients[2]))
       return(D_est)
       }
 
@@ -68,7 +57,7 @@ estimate_numtrees = function(optRF_object, measure = c("selection","importance",
         opt_numtrees = TwoPLmodel.inv(for_stability, optRF_object$model.parameters[2,1], optRF_object$model.parameters[2,2])
         D_est = data.frame(selection_stability = for_stability,
                            opt_numtrees = ceiling(opt_numtrees),
-                           run_time = estimate_runtime(opt_numtrees, runtime_model$coefficients[1], runtime_model$coefficients[2]))
+                           computation_time = estimate_runtime(opt_numtrees, runtime_model$coefficients[1], runtime_model$coefficients[2]))
         return(D_est)
       }
     }
@@ -81,7 +70,7 @@ estimate_numtrees = function(optRF_object, measure = c("selection","importance",
       opt_numtrees = TwoPLmodel.inv(for_stability, optRF_object$model.parameters[1,1], optRF_object$model.parameters[1,2])
       D_est = data.frame(selection_stability = for_stability,
                          opt_numtrees = ceiling(opt_numtrees),
-                         run_time = estimate_runtime(opt_numtrees, runtime_model$coefficients[1], runtime_model$coefficients[2]))
+                         computation_time = estimate_runtime(opt_numtrees, runtime_model$coefficients[1], runtime_model$coefficients[2]))
       if(row.names(optRF_object$model.parameters) == "Prediction_stability"){
         colnames(D_est)[2] = "prediction_stability"
       }
@@ -100,7 +89,7 @@ estimate_numtrees = function(optRF_object, measure = c("selection","importance",
         opt_numtrees = TwoPLmodel.inv(for_stability, optRF_object$model.parameters[1,1], optRF_object$model.parameters[1,2])
         D_est = data.frame(VI_stability = for_stability,
                            opt_numtrees = ceiling(opt_numtrees),
-                           run_time = estimate_runtime(opt_numtrees, runtime_model$coefficients[1], runtime_model$coefficients[2]))
+                           computation_time = estimate_runtime(opt_numtrees, runtime_model$coefficients[1], runtime_model$coefficients[2]))
         return(D_est)
       }
 
@@ -108,7 +97,7 @@ estimate_numtrees = function(optRF_object, measure = c("selection","importance",
         opt_numtrees = TwoPLmodel.inv(for_stability, optRF_object$model.parameters[2,1], optRF_object$model.parameters[2,2])
         D_est = data.frame(selection_stability = for_stability,
                            opt_numtrees = ceiling(opt_numtrees),
-                           run_time = estimate_runtime(opt_numtrees, runtime_model$coefficients[1], runtime_model$coefficients[2]))
+                           computation_time = estimate_runtime(opt_numtrees, runtime_model$coefficients[1], runtime_model$coefficients[2]))
         return(D_est)
       }
     }
@@ -121,7 +110,7 @@ estimate_numtrees = function(optRF_object, measure = c("selection","importance",
       opt_numtrees = TwoPLmodel.inv(for_stability, optRF_object$model.parameters[1,1], optRF_object$model.parameters[1,2])
       D_est = data.frame(selection_stability = for_stability,
                          opt_numtrees = ceiling(opt_numtrees),
-                         run_time = estimate_runtime(opt_numtrees, runtime_model$coefficients[1], runtime_model$coefficients[2]))
+                         computation_time = estimate_runtime(opt_numtrees, runtime_model$coefficients[1], runtime_model$coefficients[2]))
       if(row.names(optRF_object$model.parameters) == "VI_stability"){
         colnames(D_est)[2] = "VI_stability"
       }

@@ -5,15 +5,17 @@
 \title{Optimise random forest for estimation of variable importance}
 \usage{
 opt_importance(
-  y = NULL,
-  X = NULL,
+  y,
+  X,
   number.repetitions = 10,
   alpha = 0.05,
   num.trees_values = c(250, 500, 750, 1000, 2000),
+  importance = c("permutation", "impurity", "impurity_corrected"),
   visualisation = c("none", "importance", "selection"),
   recommendation = c("importance", "selection", "none"),
   rec.thresh = 1e-06,
   round.recommendation = c("thousand", "hundred", "ten", "none"),
+  verbose = TRUE,
   ...
 )
 }
@@ -22,11 +24,13 @@ opt_importance(
 
 \item{X}{A data frame containing the explanatory variables. The number of rows must be equal to the number of elements in y.}
 
-\item{number.repetitions}{Number of repetitions of random forest to estimate the variable importance stability.}
+\item{number.repetitions}{Number of repetitions of random forest to estimate the stability.}
 
 \item{alpha}{The amount of most important variables to be selected based on their estimated variable importance. If < 1, alpha will be considered the relative amount of variables in the data set.}
 
 \item{num.trees_values}{A vector containing the numbers of trees to be analysed. If not specified, 250, 500, 750, 1000, and 2000 trees will be analysed.}
+
+\item{importance}{Variable importance mode, one of "permutation" (default), "impurity" or "impurity_corrected". The "impurity" measure is the Gini index for classification and the variance of the responses for regression.}
 
 \item{visualisation}{Can be set to "importance" to draw a plot of the variable importance stability or to "selection" to draw a plot of the selection stability for the numbers of trees to be analysed.}
 
@@ -34,9 +38,11 @@ opt_importance(
 
 \item{rec.thresh}{If the number of trees leads to an increase of stability smaller or equal to the value specified, this number of trees will be recommended. Default is 1e-6.}
 
-\item{round.recommendation}{Setting to what number the recommended number of trees should be rounded to. Options: "none", "ten", "hundred", "thousand".}
+\item{round.recommendation}{Setting to what number the recommended number of trees should be rounded to. Options: "none", "ten", "hundred", "thousand" (default).}
 
-\item{...}{Any other argument from the ranger package.}
+\item{verbose}{Show computation status}
+
+\item{...}{Any other argument from the ranger function.}
 }
 \value{
 An opt_importance_object containing the recommended number of trees, based on which measure the recommendation was given (importance or selection), a matrix summarising the estimated stability and computation time of a random forest with the recommended numbers of trees, a matrix containing the calculated stability and computation time for the analysed numbers of trees, and the parameters used to model the relationship between stability and numbers of trees.

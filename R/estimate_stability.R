@@ -2,8 +2,8 @@
 #'
 #' @description Estimate the stability of random forest with certain numbers of trees
 #'
-#' @param optRF_object An optRF_object, either the result from the \link{opt_importance} or the \link{opt_prediction} function.
 #' @param with_num.trees Either a single num.trees value or a vector containing multiple num.trees values for which the stability should be estimated.
+#' @inheritParams estimate_plot_shared_parameters
 #'
 #' @return A data frame summarising the estimated stability and run time in seconds for the given num.trees values.
 #'
@@ -30,14 +30,9 @@ estimate_stability = function(optRF_object, with_num.trees = c(1000, 5000, 10000
   if(!is.numeric(with_num.trees) | any(with_num.trees < 1)){
     stop("The with_num.trees parameter needs to be a vector of positive numbers")
   }
+  with_num.trees = ceiling(with_num.trees)
 
-  TwoPLmodel = function(with_num.trees, p1, p2){
-    1 / (1+(p1/with_num.trees)^p2)
-  }
-  estimate_runtime = function(with_num.trees, p1, p2){
-    as.numeric(p1 + with_num.trees*p2)
-  }
-  runtime_model = lm(optRF_object$result.table$run.time ~ optRF_object$result.table$num.trees_values)
+  runtime_model = lm(optRF_object$result.table$computation_time ~ optRF_object$result.table$num.trees_values)
 
   # estimate RF stability for prediction estimation
   if(is(optRF_object, "opt_prediction_object")){

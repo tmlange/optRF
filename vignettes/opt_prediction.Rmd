@@ -1,0 +1,277 @@
+---
+title: "Optimising random forest for prediction based decision-making processes"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Optimising random forest for prediction based decision-making processes}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+  
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+  
+## Introduction 
+  
+Random forest is a particularly prominent method from the field of machine learning that is frequently used to make predictions and decisions based on these predictions. Despite its many advantages, it is important to recognise that random forest is inherently non-deterministic. This means that repeated analyses, even with the same data sets, can yield different prediction models due to the stochastic nature of random forest. To assess the impact of non-determinism on predictions and decisions derived from them, the `opt_prediction` function from the `optRF` package can be used which is thoroughly described in this vignette. This function models the relationship between the number of trees and the resulting stability of the random forest and uses this model to determine the optimal number of trees from where on adding more trees to the random forest would increase the computation time but would only marginally increase the stability. 
+  
+To demonstrate the functionality of the `optRF` package, we will use the `SNPdata` data set included in the package. This data set contains in the first column the yield of 250 wheat individuals as well as 5000 single nucleotide polymorphisms (SNPs) that can contain either the value 0 or 2 (with 1 indicating heterozygous alleles which do not occur here). While this example focuses on genomic research, the `optRF` package is versatile and can optimise random forest for any type of data set. Before proceeding, ensure the necessary packages are loaded into your R environment. The `optRF` package depends on the `ranger` package for efficient random forest implementation.
+  
+```{r message=FALSE, warning=FALSE}
+library(ranger)
+library(optRF)
+SNPdata[1:5,1:5]
+```
+  
+  
+## Predictions using random forest
+Random forest can be used as a prediction model that describes the relationship between the response (in this case the yield) and the predictor variables (in this case the SNPs) in a training data set. Once trained, the random forest model can be used to predict the response variable for a test data set where only the predictor variables are available. As an example, we will use the first 200 individuals from the `SNPdata` data set as the training set where both yield and SNPs are known. The remaining 50 individuals will form the test set, where only SNPs are available:
+  
+```{r message=FALSE}
+Training = SNPdata[1:200,] # Rows 1 to 200 as training data
+Test = SNPdata[201:250,-1] # Rows 201 to 250 as test data, excluding the response column (column 1)
+```
+  
+To model the relationship between the response and predictor variables, we use the `ranger` function. To ensure reproducibility, we set a seed before running the analysis:
+  
+```{r message=FALSE}
+set.seed(123) # Set a seed for reproducibility
+RF_model = ranger(y=Training[,1], x=Training[,-1], write.forest = TRUE) 
+```
+
+Once the random forest model is built, it can be used to predict the yield for the individuals in the test data set:
+
+```{r message=FALSE}
+predictions = predict(RF_model, data=Test)$predictions
+predicted_Test = data.frame(ID = row.names(Test), predicted_yield = predictions)
+head(predicted_Test)
+```
+
+The resulting data frame `predicted_Test` contains the IDs of the individuals in the test data set along with their predicted yield. Based on these predictions, a decision can be made. Suppose we want to select the top five individuals from the test data set with the highest predicted yields. To achieve this, we reorder the `predicted_Test` data frame in descending order of the predicted yield and extract the IDs of the top five individuals:
+
+```{r message=FALSE}
+predicted_Test = predicted_Test[order(predicted_Test$predicted_yield, decreasing=TRUE),] 
+selected_individuals = predicted_Test[1:5,1] 
+selected_individuals
+```
+
+The vector `selected_individuals` now contains the IDs of the five individuals from the test data set predicted to have the highest yields.  
+
+
+
+## The effect of randomness on prediction based decisions
+
+Random forest is inherently non-deterministic, meaning that repeated analyses on the same data set can produce different prediction models. To illustrate this effect, let’s repeat the previous analysis with the exact same data but using a different random seed before deriving the prediction model:
+
+```{r message=FALSE}
+set.seed(321) # Set a different seed for reproducibility
+RF_model_2 = ranger(y=Training[,1], x=Training[,-1], write.forest = TRUE)
+predictions_2 = predict(RF_model_2, data=Test)$predictions
+predicted_Test_2 = data.frame(ID = row.names(Test), predicted_yield = predictions_2)
+```
+
+The `predicted_Test_2` data frame now contains the predicted yields for individuals in the test data set from the second random forest run. To evaluate the similarity between the predictions from the two runs, we can merge the two data frames and visualise the relationship between their predictions:
+
+```{r fig.width=6, fig.height=4.5, fig.align='center'}
+M = merge(predicted_Test, predicted_Test_2, by="ID")
+plot(M$predicted_yield.x, M$predicted_yield.y,
+     xlab="Predicted yield in the first run", ylab="Predicted yield in the second run")
+cor(M$predicted_yield.x, M$predicted_yield.y)
+```
+
+The scatterplot reveals significant differences between the predictions from the two runs. Despite being based on the same data sets, the predictions vary. Pearson’s correlation coefficient of 0.67 indicates a moderate agreement but highlights notable variability.
+
+The impact of random forest’s non-determinism becomes even more apparent when decisions are based on these predictions. For example, let’s select the top five individuals with the highest predicted yields in the second run:
+
+```{r message=FALSE}
+predicted_Test_2 = predicted_Test_2[order(predicted_Test_2$predicted_yield, decreasing=TRUE),]
+selected_individuals_2 = predicted_Test_2[1:5,1]
+```
+
+We can now compare the selections from the two runs:
+
+```{r message=FALSE}
+selected_individuals
+selected_individuals_2
+```
+
+From the comparison, it’s evident that the selections differ substantially. Only ID_206 appears in both selections, meaning that 80% of the selected individuals changed between runs. 
+
+
+## Increasing the stability of random forest
+
+Random forest works by constructing multiple decision or regression trees and averaging their predictions. This ensemble approach reduces overfitting and improves robustness. However, because each tree contributes a unique prediction, the overall stability of random forest predictions improves as the number of trees increases. By default, R packages like `ranger`, `randomForest`, and `Rborist` typically use 500 trees. However, for the `SNPdata` data set, the default of 500 trees was insufficient to achieve stable variable importance estimates.
+
+To evaluate how the number of trees affects the prediction stability (the correlation of predictions between two repeated runs of random forest), the selection stability (the proportion of individuals selected in both runs based on the highest predicted responses), and the computation time, we can test random forests with different tree counts: 500, 1000, 1500, 2000, 2500, and 3000 trees. The following code illustrates the process:  
+
+```{r message=FALSE}
+num.trees_values = c(500, 1000, 1500, 2000, 2500, 3000)
+result = data.frame()
+for(i in num.trees_values){
+  
+  start.time = Sys.time()
+  
+  set.seed(123)
+  RF_model_1 = ranger(y=Training[,1], x=Training[,-1], write.forest = TRUE, num.trees=i)
+  predictions_1 = predict(RF_model_1, data=Test)$predictions
+  predicted_Test_1 = data.frame(ID = row.names(Test), predicted_yield = predictions_1)
+  predicted_Test_1 = predicted_Test_1[order(predicted_Test_1$predicted_yield, decreasing=TRUE),]
+  selected_individuals_1 = predicted_Test_1[1:5,1]
+  
+  set.seed(321)
+  RF_model_2 = ranger(y=Training[,1], x=Training[,-1], write.forest = TRUE, num.trees=i)
+  predictions_2 = predict(RF_model_2, data=Test)$predictions
+  predicted_Test_2 = data.frame(ID = row.names(Test), predicted_yield = predictions_2)
+  predicted_Test_2 = predicted_Test_2[order(predicted_Test_2$predicted_yield, decreasing=TRUE),]
+  selected_individuals_2 = predicted_Test_2[1:5,1]
+  
+  end.time = Sys.time()
+  
+  M = merge(predicted_Test_1, predicted_Test_2, by="ID")
+  result = rbind(result, data.frame(number_of_trees = i,
+                                    prediction_stability = cor(M$predicted_yield.x, M$predicted_yield.y),
+                                    selection_stability = sum(selected_individuals_1 %in% selected_individuals_2)/5,
+                                    computation_time = end.time - start.time))
+}
+result
+```
+
+As expected, the stability improves with a higher number of trees. Here, the stability rises from 0.67 at 500 trees to 0.93 at 3000 trees. However, while the computation time increases linearly with increasing numbers of trees, is the relationship between the number of trees and the variable importance stability non-linear. We can plot the stability and computation time to better understand these trends:
+
+```{r fig.width=8, fig.height=4.5, fig.align='center'}
+par(mfrow=c(1,2))
+plot(prediction_stability ~ number_of_trees, data=result)
+plot(computation_time ~ number_of_trees, data=result)
+abline(lm(result$computation_time ~ result$number_of_trees), lwd=2, col="grey")
+```
+
+Initially, the stability increases steeply with additional trees but eventually begins to plateau. This diminishing return indicates that beyond a certain number of trees, the stability gains become marginal. In contrast to the stability, the computation time increases linearly with an increasing number of trees. This is a predictable outcome since each additional tree contributes directly to processing time. Since computation time increases linearly with the number of trees, an optimal trade-off point can be identified from where on adding more trees to random forest would increase the computation time but would increase the stability only marginally. 
+
+
+## Optimising random forest using optRF
+
+
+### Optimising random forest for predictions
+The optimal number of trees in a random forest model is highly data-dependent and must be estimated for each new data set. To automate this process, the `optRF` package provides a convenient method for determining the optimal number of trees. 
+
+Therefore, it determines the stability of random forest with 250, 500, 750, 1,000, and 2,000 trees where random forest is repeated ten times. If the response variable is numeric, the prediction stability is measured as the intraclass correlation between predictions from the ten repetitions of random forest.If the response variable is categorical, the prediction stability is measured using Fleiss' Kappa to assess agreement between the predicted classes across the ten repetitions. Similarly, in each repetition of random forest, the individuals with the highest predicted response are classified as `selected` and the rest of the individuals as `rejected`. The selection stability is then measured using Fleiss' Kappa to assess the agreement among these classifications in the ten repetitions of random forest. 
+
+After the stability of random forest has been calculated with these numbers of trees, the relationship between the number of trees and the corresponding stability is modelled using a two parameter logistic regression model and the increase in stability with each additional tree being added to the random forest is calculated. The optimal number of trees is then defined as the point where adding additional trees increases the stability by only $10^{-6}$ or less.
+
+To determine the optimal number of trees regarding the prediction stability, the `opt_prediction` function from the `optRF` package can be used where the response variable from the training data set is passed to the `y` argument, the predictor variables from the training data set are inserted in the `X` argument, and the predictor variables from the test data set are specified in the `X_Test` argument. In this example, the goal is to select the top 5 individuals (10% of the test population). By default, the function selects the top 15% of individuals from the test data set but this can be customised in the `alpha` argument:
+
+```{r message=FALSE}
+set.seed(123) # Set a seed for reproducibility
+optRF_result = opt_prediction(y=Training[,1], X=Training[,-1], X_Test=Test, 
+                              alpha=0.1)
+```
+
+Once the `opt_prediction` function has completed, the recommended number of trees and the expected stability of the random forest model can be easily accessed using the `summary` function:
+
+```{r message=FALSE}
+summary(optRF_result)
+```
+
+Here, the optimal number of trees to receive stable predictions is 19,000 trees. Using random forest with this number of trees, one can expect a prediction stability of 0.98 and a selection stability of 0.71. 
+
+
+### The effect of the optimal number of trees
+Now that the optimal number of trees has been determined, we can repeat the analysis from earlier to examine how the stability of the random forest model changes when using 19,000 trees.
+
+
+```{r fig.width=6, fig.height=4.5, fig.align='center'}
+set.seed(123)
+RF_model_1 = ranger(y=Training[,1], x=Training[,-1], 
+                    write.forest = TRUE, num.trees=19000)
+predictions_1 = predict(RF_model_1, data=Test)$predictions
+predicted_Test_1 = data.frame(ID = row.names(Test), predicted_yield = predictions_1)
+predicted_Test_1 = predicted_Test_1[order(predicted_Test_1$predicted_yield, decreasing=TRUE),]
+selected_individuals_1 = predicted_Test_1[1:5,1]
+
+set.seed(321)
+RF_model_2 = ranger(y=Training[,1], x=Training[,-1], 
+                    write.forest = TRUE, num.trees=19000)
+predictions_2 = predict(RF_model_2, data=Test)$predictions
+predicted_Test_2 = data.frame(ID = row.names(Test), predicted_yield = predictions_2)
+predicted_Test_2 = predicted_Test_2[order(predicted_Test_2$predicted_yield, decreasing=TRUE),]
+selected_individuals_2 = predicted_Test_2[1:5,1]
+
+M = merge(predicted_Test_1, predicted_Test_2, by="ID")
+plot(M$predicted_yield.x, M$predicted_yield.y,
+     xlab="Predicted yield in the first run", ylab="Predicted yield in the second run")
+cor(M$predicted_yield.x, M$predicted_yield.y)
+```
+
+With 19,000 trees, the correlation between the predictions in the two repetitions is 0.98, a dramatic improvement over the correlation of 0.67 observed with 500 trees. The scatter plot of the predictions from the two runs shows a tightly clustered pattern, confirming consistency in the results and the high correlation aligns with the stability value predicted by `opt_prediction`, demonstrating the reliability of the function's recommendation.
+
+
+### Optimising random forest for prediction based decision-making processes
+While stable predictions are essential, it is equally important to ensure stability in the decisions based on these predictions. In this case, the goal was to select the five individuals from the test dataset with the highest predicted response. We now examine how the optimised number of trees impacts the consistency of these selections across two runs:
+
+```{r message=FALSE}
+selected_individuals_1
+selected_individuals_2
+```
+
+The selected individuals from the two runs are now largely similar. Among the five individuals chosen in each run, four were selected in both repetitions, demonstrating improved, though not perfect, selection stability. The slight inconsistency in selections arises because the optimal number of trees was defined based on prediction stability, with the criterion being that adding more trees would increase prediction stability by only $10^{-6}$ or less. As shown earlier, the prediction stability at 19,000 trees is 0.98, but the selection stability is only 0.71 which might be insufficient for applications requiring highly consistent selections.
+
+To enhance selection stability specifically, we can adjust the `opt_prediction` function to recommend the optimal number of trees based on selection stability instead of prediction stability. This can be achieved by modifying the `recommendation` parameter in the function: 
+
+```{r message=FALSE}
+set.seed(123) # Set a seed for reproducibility
+optRF_result_2 = opt_prediction(y=Training[,1], X=Training[,-1], X_Test=Test,
+                                alpha=0.1, recommendation="selection")
+summary(optRF_result_2)
+```
+
+From the updated output of `opt_prediction`, we see that the recommended number of trees has increased significantly to 73,000. At this level, the selection stability is expected to be 0.84, meaning that adding more trees would improve selection stability by $10^{-6}$ or less. 
+
+
+## Customised optimisations
+
+### Customising the optimal number of trees 
+
+In addition to determining the optimal number of trees such that adding more trees would increase either the prediction or selection stability by $10^{-6}$ or less, it is also possible to identify the number of trees required to achieve a specific level of stability. This can be done using the `estimate_numtrees` and `plot_stability` functions.
+
+For instance, by running the `plot_stability` function for an interval of 0 to 200,000 trees, setting the `add.recommendation` argument to `TRUE` and `the measure` argument to `"selection"`, we can visualise the selection stability achieved with the recommended 73,000 trees (displayed as a red line) compared to the stability across the entire interval:
+
+```{r fig.width=6, fig.height=4.5, fig.align='center'}
+plot_stability(optRF_result_2, measure="selection", from=0, to=200000)
+```
+
+From the plot, it is evident that there is still room for improvement in selection stability. For example, running random forest with 73,000 trees yields a selection stability of 0.84. If a higher level of stability is required, we can determine the number of trees necessary to achieve specific selection stability thresholds (e.g., 0.9, 0.95, or 0.99) using the `estimate_numtrees` function:
+
+```{r message=FALSE}
+estimate_numtrees(optRF_result_2, measure="selection", for_stability=0.9)
+estimate_numtrees(optRF_result_2, measure="selection", for_stability=0.95)
+estimate_numtrees(optRF_result_2, measure="selection", for_stability=0.99)
+```
+
+The output of `estimate_numtrees` provides the desired selection stability, the required number of trees, and the estimated computation time for computing random forest with that number of trees. Notably, increasing the selection stability from 0.9 to 0.95 quadruples the computation time, while increasing it further from 0.95 to 0.99 amplifies the computation time by a factor of 20. This highlights the exponential trade-off between stability and computational cost. 
+
+It is important to note that the computation time estimated by `opt_prediction` is specific to the machine on which the function was run. On a different system, the computation time may vary. Additionally, these estimates are based on the `ranger` function which can execute random forest computations in parallel using multiple threads. To provide realistic estimates, the number of threads can be specified using the `num.threads` argument in both the `ranger` and `opt_prediction` functions. 
+
+Assume that after analysing the results from `estimate_numtrees`, we decide to use 250,000 trees for prediction. Based on earlier findings, this would yield a selection stability between 0.9 and 0.95. However, to publish exact stability metrics, we can use the `estimate_stability` function with the chosen number of trees:
+
+```{r message=FALSE}
+estimate_stability(optRF_result_2, with_num.trees=250000)
+```
+
+The results indicate that when making predictions with 250,000 trees and this data set, the prediction stability is 0.998 and the selection stability is 0.909. These values now give others the possibility to assess the reproducibility of the results and can show that the results of the analysis are reliable. Thus, the prediction and selection stability should always be given when publishing decisions based on random forest predictions. 
+
+
+### Customising the `opt_prediction` function
+This vignette illustrated an application of the `opt_prediction` function to predict the yield of 50 wheat plants and select the five individuals with the highest predicted yield. However, the function is highly flexible and can accommodate different selection goals such as selecting individuals with the lowest predicted response by setting the `select_for` argument to `"low"` or selecting individuals whose predicted response can be both negative and positive but is closest to zero by setting the `select_for` argument to `"zero"`.
+
+In this example, the optimal number of trees was defined as the number of trees at which adding more trees would increase the prediction stability by $10^{-6}$ or less. This threshold is arbitrary and can be customised using the `rec.thresh` argument to fit specific requirements. Next to setting the `recommendation` argument to `"prediction"` (default) or `"selection"`, the `recommendation` argument can be set to `"none"` to analyse the relationship between the number of trees and stability without receiving a specific recommendation. The user can then manually determine the optimal number of trees using the `estimate_numtrees`, `estimate_stability`, and `plot_stability` functions.
+
+Users can also adjust computational settings to tailor the `opt_prediction` function to their needs. Using the `number.repetitions` argument, it can be controlled how many repetitions are performed. Fewer repetitions will reduce computation time but may lead to more variable results. Using the `num.trees_values` argument, certain numbers of trees can be specified. Smaller ranges or fewer values will speed up computation but might reduce the precision of the stability analysis. We recommend not to adjust these arguments.
+
+Next to the arguments described here, the user can also add arguments from the `ranger` function to customise the application of `opt_prediction`. This gives the user the possibility to adjust the `num.threads` argument to allow for parallel computing or add specific values for hyperparameters in random forest such as `mtry`, `min.node.size`, or `sample.fraction`. 
+
+
+## Conclusions
+While random forest has many advantages and can be easily used to enable data-driven decision-making processes, it must be taken into consideration that random forest is a non-deterministic method that can lead to different prediction models and, thus, different decisions even when analysing the same data set. The stability of random forest depends strongly on the number of trees which not only increases stability but also computation time. The `optRF` package provides an efficient solution for this problem by modelling the relationship between the number of trees and the corresponding stability of random forest. With its `opt_prediction` function, users can systematically evaluate this relationship for a specific data set and determine the optimal number of trees required to achieve satisfactory stability and improve reproducibility. Researchers are encouraged to evaluate the stability of the chosen number of trees to ensure reliable and reproducible results when using random forest. 

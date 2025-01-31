@@ -8,19 +8,18 @@ summary.opt_prediction_object = function(object, ...){
       cat("Recommended number of trees: ", object$recommendation, "\n",
           "Expected prediction stability: ", object$expected_RF_stability[2], "\n",
           "Expected selection stability: ", object$expected_RF_stability[3], "\n",
-          "Expected run time (sec): ", object$expected_RF_stability[4], sep = "")
+          "Expected computation time (sec): ", object$expected_RF_stability[4], sep = "")
     }
     if(nrow(object$expected_RF_stability) == 3){
       if(row.names(object$expected_RF_stability)[2] =="Prediction_stability"){
         cat("Recommended number of trees: ", object$recommendation, "\n",
             "Expected prediction stability: ", object$expected_RF_stability[2], "\n",
-            "Expected run time (sec): ", object$expected_RF_stability[3], "\n", sep = "")
-
+            "Expected computation time (sec): ", object$expected_RF_stability[3], "\n", sep = "")
       }
       if(row.names(object$expected_RF_stability)[2] =="Selection_stability"){
         cat("Recommended number of trees: ", object$recommendation, "\n",
             "Expected selection stability: ", object$expected_RF_stability[2], "\n",
-            "Expected run time (sec): ", object$expected_RF_stability[3], "\n", sep = "")
+            "Expected computation time (sec): ", object$expected_RF_stability[3], "\n", sep = "")
       }
     }
   }

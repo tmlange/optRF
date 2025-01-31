@@ -2,13 +2,13 @@
 #'
 #' @description Plot the estimated stability of random forest against certain numbers of trees
 #'
-#' @param optRF_object An optRF_object, either the result from the \link{opt_importance} or the \link{opt_prediction} function.
 #' @param measure A character string indicating which stability measure is to be plotted. One of "selection" (default, visualises selection stability), "prediction" (visualises prediction stability) or "importance" (visualises variable importance stability).
 #' @param from Smallest num.trees value to be plotted.
 #' @param to Greatest num.trees value to be plotted.
 #' @param add.recommendation When set as TRUE, if a recommendation was stated within the opt_prediction or opt_importance function, the recommended num.trees value as well as the expected random forest stability will be highlighted in the graph
 #' @param add If FALSE, a new plot will be created, if TRUE, the graph will be added to an existing plot.
 #' @param ... Any other arguments from the plot function.
+#' @inheritParams estimate_plot_shared_parameters
 #'
 #' @return A plot showing the estimated stability of random forest for the given num.trees values.
 #'
@@ -35,17 +35,8 @@ plot_stability = function(optRF_object, measure = c("selection","importance","pr
     stop("Invalid object was inserted. The inserted object must be the result from the opt_prediction or opt_importance function.")
   }
 
-  # If the measure argument is invalid, give an error message
-  if(identical(measure, c("selection", "importance", "prediction"))){
-    measure = "selection"
-  }
-  if(length(measure) != 1 || !(measure %in% c("selection","importance","prediction"))){
-    stop("Invalid input for measure. The measure must be either \"selection\", \"importance\", or \"prediction\".")
-  }
-
-  TwoPLmodel = function(at, p1, p2){
-    1 / (1+(p1/at)^p2)
-  }
+  # Check value of measure
+  measure = match.arg(measure)
 
   visualiseStability = function(param1, param2, ...){
     if(add == FALSE){
