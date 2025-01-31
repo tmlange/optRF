@@ -256,7 +256,7 @@ opt_importance = function(y, X, number.repetitions=10, alpha = 0.05, num.trees_v
     }
 
     if(verbose){
-      message("\n Recommended num.trees value: ", rec.num.trees)
+      message("\n Recommended number of trees: ", rec.num.trees)
     }
 
     # Create output

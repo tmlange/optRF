@@ -331,7 +331,7 @@ opt_prediction = function(y, X, X_Test=NULL,
     }
 
     if(verbose){
-      message("\n Recommended num.trees value: ", rec.num.trees)
+      message("\n Recommended number of trees: ", rec.num.trees)
     }
 
     # Create output
