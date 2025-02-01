@@ -1,8 +1,8 @@
 bibentry(
   bibtype  = "Article",
   title    = "optRF: Optimising random forest stability by determining the optimal number of trees",
-  author   = "Lange, T. M. and Heinrich, F. and G\"ultas, M. and Schmitt, A. O.",
+  author   = "Lange, T. M. and Heinrich, F. and Gültas, M. and Schmitt, A. O.",
   journal  = "PREPRINT (Version 1) available at Research Square",
   year     = "2024",
-  doi      = "https://doi.org/10.21203/rs.3.rs-5432153/v1"
+  doi      = "10.21203/rs.3.rs-5432153"
 )
