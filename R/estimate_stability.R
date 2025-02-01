@@ -41,7 +41,7 @@ estimate_stability = function(optRF_object, with_num.trees = c(1000, 5000, 10000
       D_est = data.frame(num.trees = with_num.trees,
                          prediction_stability = TwoPLmodel(with_num.trees, optRF_object$model.parameters[1,1], optRF_object$model.parameters[1,2]),
                          selection_stability = TwoPLmodel(with_num.trees, optRF_object$model.parameters[2,1], optRF_object$model.parameters[2,2]),
-                         run_time = estimate_runtime(with_num.trees, runtime_model$coefficients[1], runtime_model$coefficients[2]))
+                         computation_time = estimate_runtime(with_num.trees, runtime_model$coefficients[1], runtime_model$coefficients[2]))
       return(D_est)
     }
 
@@ -52,7 +52,7 @@ estimate_stability = function(optRF_object, with_num.trees = c(1000, 5000, 10000
     if(nrow(optRF_object$model.parameters) == 1){ # If only one model could be produced, estimate only the stability for the measure that could be modelled
       D_est = data.frame(num.trees = with_num.trees,
                          selection_stability = TwoPLmodel(with_num.trees, optRF_object$model.parameters[1,1], optRF_object$model.parameters[1,2]),
-                         run_time = estimate_runtime(with_num.trees, runtime_model$coefficients[1], runtime_model$coefficients[2]))
+                         computation_time = estimate_runtime(with_num.trees, runtime_model$coefficients[1], runtime_model$coefficients[2]))
       if(row.names(optRF_object$model.parameters) == "Prediction_stability"){
         colnames(D_est)[2] = "prediction_stability"
       }
@@ -65,7 +65,7 @@ estimate_stability = function(optRF_object, with_num.trees = c(1000, 5000, 10000
       D_est = data.frame(num.trees = with_num.trees,
                          VI_stability = TwoPLmodel(with_num.trees, optRF_object$model.parameters[1,1], optRF_object$model.parameters[1,2]),
                          selection_stability = TwoPLmodel(with_num.trees, optRF_object$model.parameters[2,1], optRF_object$model.parameters[2,2]),
-                         run_time = estimate_runtime(with_num.trees, runtime_model$coefficients[1], runtime_model$coefficients[2]))
+                         computation_time = estimate_runtime(with_num.trees, runtime_model$coefficients[1], runtime_model$coefficients[2]))
 
       return(D_est)
     }
@@ -77,7 +77,7 @@ estimate_stability = function(optRF_object, with_num.trees = c(1000, 5000, 10000
     if(nrow(optRF_object$model.parameters) == 1){ # If only one model could be produced, estimate only the stability for the measure that could be modelled
       D_est = data.frame(num.trees = with_num.trees,
                          selection_stability = TwoPLmodel(with_num.trees, optRF_object$model.parameters[1,1], optRF_object$model.parameters[1,2]),
-                         run_time = estimate_runtime(with_num.trees, runtime_model$coefficients[1], runtime_model$coefficients[2]))
+                         computation_time = estimate_runtime(with_num.trees, runtime_model$coefficients[1], runtime_model$coefficients[2]))
       if(row.names(optRF_object$model.parameters) == "VI_stability"){
         colnames(D_est)[2] = "VI_stability"
       }
