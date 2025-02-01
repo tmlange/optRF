@@ -27,7 +27,9 @@ SNPdata[1:5, 1:5]
   
   
 ## The `opt_prediction` function
-  
+```{r echo=FALSE, message=FALSE}
+load("optRF_vignette_predData.Rda")
+```    
   
 ### Optimising random forest for predictions
 To determine the optimal number of trees for random forest predictions, the `opt_prediction` function from the `optRF` package can be used. For a detailed description of the `opt_prediction` function, please refer to its [`vignette`](opt_prediction.html).
@@ -41,7 +43,7 @@ Test = SNPdata[201:250,-1] # Rows 201 to 250 as test data, excluding the respons
   
 To make the code reproducible, we will set a seed of `123` before using the `opt_prediction` function. This function identifies the optimal number of trees required for random forest to predict the response variable in the test data set. The response variable from the training data set is passed to the `y` argument, the predictor variables from the training data set are inserted in the `X` argument, and the predictor variables from the test data set are specified in the `X_Test` argument. Let's also assume that we aim to select the 5 top performing individuals from the test data set which translates to the top 10% which has to be inserted in the `alpha` argument:
   
-```{r message=FALSE}
+```{r eval=FALSE, message=FALSE}
 set.seed(123) # Set a seed for reproducibility
 optRF_result = opt_prediction(y=Training[,1], X=Training[,-1], 
                               X_Test=Test, alpha=0.1)
@@ -57,7 +59,7 @@ Here, the optimal number of trees to receive stable predictions is 19,000 trees.
   
 With the optimal number of trees identified, random forest can now be used to predict the response variable in the test data set. For this, the `ranger` function can be used: 
   
-```{r message=FALSE}
+```{r eval=FALSE, message=FALSE}
 RF_model = ranger(y=Training[,1], x=Training[,-1], 
                   write.forest = TRUE, num.trees=optRF_result$recommendation)
 predictions = predict(RF_model, data=Test)$predictions
@@ -75,7 +77,7 @@ To evaluate the stability of random forest in supporting this selection decision
   
 To determine the optimal number of trees for selection, the argument `recommendation` has to be set to `"selection"`:
   
-```{r message=FALSE}
+```{r eval=FALSE, message=FALSE}
 set.seed(123) # Set a seed for reproducibility
 optRF_result_2 = opt_prediction(y=Training[,1], X=Training[,-1], X_Test=Test,
                                 alpha=0.1, recommendation="selection")
@@ -95,7 +97,9 @@ One can see that the recommended number of trees was increased to 73,000 trees. 
   
   
 ## The `opt_importance` function
-  
+```{r echo=FALSE, message=FALSE}
+load("optRF_vignette_impData.Rda")
+```  
   
 ### Optimising random forest for variable importance estimation
 In addition to predictions, random forest can be used to estimate variable importance and select the most relevant variables in a data set. For variable selection, the `opt_importance` function from the `optRF` package can help determine the optimal number of trees for random forest. For a detailed explanation of the `opt_importance` function, please refer to its [`vignette`](opt_importance.html).
@@ -103,7 +107,7 @@ In addition to predictions, random forest can be used to estimate variable impor
   
 To make the code reproducible, we will set a seed of `123` before using the `opt_importance` function. This function identifies the optimal number of trees required to reliably estimate the importance of variables in a data set:
   
-```{r message=FALSE}
+```{r eval=FALSE, message=FALSE}
 set.seed(123) # Set a seed for reproducibility
 optRF_result = opt_importance(y=SNPdata[,1], X=SNPdata[,-1])
 ```
@@ -118,7 +122,7 @@ The results indicate that the optimal number of trees for estimating variable im
   
 With the optimal number of trees determined, random forest can now be used to estimate variable importance. This can be achieved using the `ranger` function with permutation importance: 
   
-```{r message=FALSE}
+```{r eval=FALSE, message=FALSE}
 RF_model = ranger(y=SNPdata[,1], x=SNPdata[,-1], num.trees=optRF_result$recommendation,
                   write.forest = TRUE, importance="permutation")
 D_VI = data.frame(variable = names(SNPdata)[-1], 
@@ -126,8 +130,6 @@ D_VI = data.frame(variable = names(SNPdata)[-1],
 ```
 
 The variable importance results are now saved in the data frame `D_VI` which contains the variable names and the corresponding importance estimates.
-
-
 
 ### Optimising random forest for variable selection
 
@@ -150,7 +152,7 @@ selection_size = sum(RF_model$variable.importance>5)
 
 Using this number of selected variables, the optimal number of trees for random forest can be determined with the `opt_importance` function:
 
-```{r message=FALSE}
+```{r eval=FALSE, message=FALSE}
 set.seed(123) # Set a seed for reproducibility
 optRF_result_2 = opt_importance(y=SNPdata[,1], X=SNPdata[,-1], 
                                 recommendation = "selection",
@@ -159,7 +161,7 @@ optRF_result_2 = opt_importance(y=SNPdata[,1], X=SNPdata[,-1],
 
 With the recommended number of trees, we re-estimate variable importance and select the top variables:
 
-```{r message=FALSE}
+```{r eval=FALSE, message=FALSE}
 RF_model_2 = ranger(y=SNPdata[,1], x=SNPdata[,-1], num.trees=optRF_result_2$recommendation,
                     write.forest = TRUE, importance="permutation")
 D_VI_2 = data.frame(variable = names(SNPdata)[-1], 
