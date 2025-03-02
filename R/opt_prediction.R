@@ -9,6 +9,7 @@
 #' @param recommendation If set to "prediction" (default) or "selection", a recommendation will be given based on optimised prediction or selection stability. If set to be "none", the function will analyse the stability of random forest with the inserted numbers of trees without giving a recommendation.
 #' @inheritParams round_rec_helper
 #' @inheritParams number_rep_helper
+#' @inheritParams rec_thresh_helper
 #' @inheritParams opt_shared_parameters
 #' @inheritParams prediction_shared_parameters
 #'
@@ -51,6 +52,9 @@ opt_prediction = function(y, X, X_Test=NULL,
 
   # Check value of number.repetitions
   number.repetitions = number_rep_helper(number.repetitions)
+
+  # Check value of rec.thresh
+  rec.thresh = rec_thresh_helper(rec.thresh)
 
   # Check if y and X have the same number of observations
   if(!all.equal(nrow(X), length(y))){

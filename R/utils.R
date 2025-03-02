@@ -1,5 +1,4 @@
 #' @param num.trees_values A vector containing the numbers of trees to be analysed. If not specified, 250, 500, 750, 1000, and 2000 trees will be analysed.
-#' @param rec.thresh If the number of trees leads to an increase of stability smaller or equal to the value specified, this number of trees will be recommended. Default is 1e-6.
 #' @param verbose Show computation status
 #' @param ... Any other argument from the ranger function.
 #' @name opt_shared_parameters
@@ -34,6 +33,14 @@ number_rep_helper = function(number.repetitions){
     stop("number.repetitions needs to be a number >= 2.")
   }
   number.repetitions = ceiling(number.repetitions[1])
+}
+
+#' @param rec.thresh If the number of trees leads to an increase of stability smaller or equal to the value specified, this number of trees will be recommended. Default is 1e-6.
+rec_thresh_helper = function(rec.thresh){
+  if(!is.numeric(rec.thresh) | rec.thresh <= 0){
+    stop("rec.thresh needs to be a positive number.")
+  }
+  rec.thresh = rec.thresh[1]
 }
 
 TwoPLmodel = function(vec, p1, p2){
