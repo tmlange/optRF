@@ -24,7 +24,7 @@ opt_importance(
 
 \item{X}{A data frame containing the explanatory variables. The number of rows must be equal to the number of elements in y.}
 
-\item{number.repetitions}{Number of repetitions of random forest to estimate the stability.}
+\item{number.repetitions}{Number of repetitions of random forest to estimate the stability. It needs to be at least 2. Default is 10.}
 
 \item{alpha}{The amount of most important variables to be selected based on their estimated variable importance. If < 1, alpha will be considered the relative amount of variables in the data set.}
 

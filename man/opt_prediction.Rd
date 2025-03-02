@@ -27,7 +27,7 @@ opt_prediction(
 
 \item{X_Test}{A data frame containing the explanatory variables of the test data set. If not entered, the out of bag data will be used.}
 
-\item{number.repetitions}{Number of repetitions of random forest to estimate the stability.}
+\item{number.repetitions}{Number of repetitions of random forest to estimate the stability. It needs to be at least 2. Default is 10.}
 
 \item{alpha}{The number of best individuals to be selected in the test data set based on their predicted response values. If < 1, alpha will be considered to be the relative amount of individuals in the test data set.}
 

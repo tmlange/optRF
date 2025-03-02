@@ -9,6 +9,7 @@
 #' @param visualisation Can be set to "importance" to draw a plot of the variable importance stability or to "selection" to draw a plot of the selection stability for the numbers of trees to be analysed.
 #' @param recommendation If set to "importance" (default) or "selection", a recommendation will be given based on optimised variable importance or selection stability. If set to be "none", the function will analyse the stability of random forest with the inserted numbers of trees without giving a recommendation.
 #' @inheritParams round_rec_helper
+#' @inheritParams number_rep_helper
 #' @inheritParams opt_shared_parameters
 #'
 #' @return An opt_importance_object containing the recommended number of trees, based on which measure the recommendation was given (importance or selection), a matrix summarising the estimated stability and computation time of a random forest with the recommended numbers of trees, a matrix containing the calculated stability and computation time for the analysed numbers of trees, and the parameters used to model the relationship between stability and numbers of trees.
@@ -49,11 +50,17 @@ opt_importance = function(y, X, number.repetitions=10, alpha = 0.05, num.trees_v
   # Check value of recommendation
   recommendation = match.arg(recommendation)
 
+  # Check value of number.repetitions
+  number.repetitions = number_rep_helper(number.repetitions)
+
   # If y is neither numeric nor a factor, return an error message
   if(!is.numeric(y) & !is.factor(y)){
     stop("The response variable is neither numeric nor a factor")
   }
 
+  if(!is.numeric(alpha) | any(alpha < 0)){
+    stop("alpha needs to be a positive number.")
+  }
   if(alpha < 1){
     selection.size = round(ncol(X)*alpha)
   }

@@ -1,9 +1,13 @@
-#' @param number.repetitions Number of repetitions of random forest to estimate the stability.
 #' @param num.trees_values A vector containing the numbers of trees to be analysed. If not specified, 250, 500, 750, 1000, and 2000 trees will be analysed.
 #' @param rec.thresh If the number of trees leads to an increase of stability smaller or equal to the value specified, this number of trees will be recommended. Default is 1e-6.
 #' @param verbose Show computation status
 #' @param ... Any other argument from the ranger function.
 #' @name opt_shared_parameters
+NULL
+
+#' @param y A vector containing the response variable in the training data set.
+#' @param X A data frame containing the explanatory variables in the training data set. The number of rows must be equal to the number of elements in y.
+#' @name prediction_shared_parameters
 NULL
 
 #' @param optRF_object An optRF_object, either the result from the \link{opt_importance} or the \link{opt_prediction} function.
@@ -22,6 +26,14 @@ round_rec_helper = function(round.recommendation = c("thousand","hundred","ten",
     hundred = -2,
     thousand = -3
   )
+}
+
+#' @param number.repetitions Number of repetitions of random forest to estimate the stability. It needs to be at least 2. Default is 10.
+number_rep_helper = function(number.repetitions){
+  if(!is.numeric(number.repetitions) | number.repetitions[1] < 2){
+    stop("number.repetitions needs to be a number >= 2.")
+  }
+  number.repetitions = ceiling(number.repetitions[1])
 }
 
 TwoPLmodel = function(vec, p1, p2){

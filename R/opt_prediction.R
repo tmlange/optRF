@@ -2,15 +2,15 @@
 #'
 #' @description Optimising random forest predictions by calculating the prediction stability with certain numbers of trees
 #'
-#' @param y A vector containing the response variable in the training data set.
-#' @param X A data frame containing the explanatory variables in the training data set. The number of rows must be equal to the number of elements in y.
 #' @param X_Test A data frame containing the explanatory variables of the test data set. If not entered, the out of bag data will be used.
 #' @param alpha The number of best individuals to be selected in the test data set based on their predicted response values. If < 1, alpha will be considered to be the relative amount of individuals in the test data set.
 #' @param visualisation Can be set to "prediction" to draw a plot of the prediction stability or "selection" to draw a plot of the selection stability for the numbers of trees to be analysed.
 #' @param select_for What should be selected? In random forest classification, this must be set to a vector containing the values of the desired classes. In random forest regression, this can be set as "high" (default) to select the individuals with the highest predicted value, "low" to select the individuals with the lowest predicted value, or "zero" to select the individuals which predicted value is closest to zero.
 #' @param recommendation If set to "prediction" (default) or "selection", a recommendation will be given based on optimised prediction or selection stability. If set to be "none", the function will analyse the stability of random forest with the inserted numbers of trees without giving a recommendation.
 #' @inheritParams round_rec_helper
+#' @inheritParams number_rep_helper
 #' @inheritParams opt_shared_parameters
+#' @inheritParams prediction_shared_parameters
 #'
 #' @return An opt_prediction_object containing the recommended number of trees, based on which measure the recommendation was given (prediction or selection), a matrix summarising the estimated stability and computation time of a random forest with the recommended numbers of trees, a matrix containing the calculated stability and computation time for the analysed numbers of trees, and the parameters used to model the relationship between stability and numbers of trees.
 #'
@@ -49,7 +49,10 @@ opt_prediction = function(y, X, X_Test=NULL,
   # Check value of recommendation
   recommendation = match.arg(recommendation)
 
-  # Test if data format is correct
+  # Check value of number.repetitions
+  number.repetitions = number_rep_helper(number.repetitions)
+
+  # Check if y and X have the same number of observations
   if(!all.equal(nrow(X), length(y))){
     stop("Length of y does not equal number of rows of X \n")
   }
@@ -102,6 +105,9 @@ opt_prediction = function(y, X, X_Test=NULL,
     test_seq = seq(10, round((variable.number*100), -1), 10)
   }
 
+  if(!is.numeric(alpha) | any(alpha < 0)){
+    stop("alpha needs to be a positive number.")
+  }
   # Defining the number of individuals to be selected from the data set
   if(alpha < 1){
     selection.size = round(length(sample.IDs)*alpha)
