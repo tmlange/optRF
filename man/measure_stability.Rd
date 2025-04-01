@@ -51,8 +51,8 @@ Measure the stability of random forest for a certain data set with a certain num
 \dontrun{
 data(SNPdata)
 set.seed(123)
-stability_result = measure_stability(y = SNPdata[,1], X=SNPdata[,-1], num.trees=500) # analyse the stability of random forest with 500 trees
-stability_result
+stability_result = measure_stability(y = SNPdata[,1], X=SNPdata[,-1], num.trees=500)
+stability_result # Stability of random forest with 500 trees
 }
 
 }
