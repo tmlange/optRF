@@ -280,12 +280,40 @@ The results indicate that when making predictions with 250,000 trees and this da
 ### Customising the `opt_prediction` function
 This vignette illustrated an application of the `opt_prediction` function to predict the yield of 50 wheat plants and select the five individuals with the highest predicted yield. However, the function is highly flexible and can accommodate different selection goals such as selecting individuals with the lowest predicted response by setting the `select_for` argument to `"low"` or selecting individuals whose predicted response can be both negative and positive but is closest to zero by setting the `select_for` argument to `"zero"`.
 
-In this example, the optimal number of trees was defined as the number of trees at which adding more trees would increase the prediction stability by $10^{-6}$ or less. This threshold is arbitrary and can be customised using the `rec.thresh` argument to fit specific requirements. Next to setting the `recommendation` argument to `"prediction"` (default) or `"selection"`, the `recommendation` argument can be set to `"none"` to analyse the relationship between the number of trees and stability without receiving a specific recommendation. The user can then manually determine the optimal number of trees using the `estimate_numtrees`, `estimate_stability`, and `plot_stability` functions.
+In this example, the optimal number of trees was defined as the number of trees at which adding more trees would increase the prediction stability by $10^{-6}$ or less. This threshold is arbitrary and can be customised using the `rec_thresh` argument to fit specific requirements. Next to setting the `recommendation` argument to `"prediction"` (default) or `"selection"`, the `recommendation` argument can be set to `"none"` to analyse the relationship between the number of trees and stability without receiving a specific recommendation. The user can then manually determine the optimal number of trees using the `estimate_numtrees`, `estimate_stability`, and `plot_stability` functions.
 
-Users can also adjust computational settings to tailor the `opt_prediction` function to their needs. Using the `number.repetitions` argument, it can be controlled how many repetitions are performed. Fewer repetitions will reduce computation time but may lead to more variable results. Using the `num.trees_values` argument, certain numbers of trees can be specified. Smaller ranges or fewer values will speed up computation but might reduce the precision of the stability analysis. We recommend not to adjust these arguments.
+Users can also adjust computational settings to tailor the `opt_prediction` function to their needs. Using the `number_repetitions` argument, it can be controlled how many repetitions are performed. Fewer repetitions will reduce computation time but may lead to more variable results. Using the `num.trees_values` argument, certain numbers of trees can be specified. Smaller ranges or fewer values will speed up computation but might reduce the precision of the stability analysis. We recommend not to adjust these arguments.
 
 Next to the arguments described here, the user can also add arguments from the `ranger` function to customise the application of `opt_prediction`. This gives the user the possibility to adjust the `num.threads` argument to allow for parallel computing or add specific values for hyperparameters in random forest such as `mtry`, `min.node.size`, or `sample.fraction`. 
 
+
+### Measuring the stability of random forest
+```{r echo=FALSE, message=FALSE}
+load("opt_prediction_vignette_stabilityData.Rda")
+```  
+While optimising the number of trees is generally recommended for making predictions using random forest, the `optRF` package also allows users to assess the stability of a random forest model with a fixed number of trees. This can be done using the `measure_stability` function without running the `opt_prediction` function first. Hereby, it must be indicated that random forest is used for predictions by setting `method = "prediction"`. 
+
+For example, to evaluate the stability of a random forest model using the default setting of 500 trees, you can run:
+
+```{r eval=FALSE, message=FALSE}
+set.seed(123)
+stability_pred_500 = measure_stability(y = Training[,1], X=Training[,-1], X_Test=Test, num.trees=500, method="prediction")
+```
+```{r message=FALSE}
+stability_pred_500
+```
+The output of `measure_stability` shows that the prediction stability is 0.626 while the selection stability is 0.286. This agrees  with the values calculated earlier.
+
+If the number of trees in the random forest model has been predefined and optimisation is not required, the stability of the model can still be assessed using `measure_stability`. For instance, if the model is set to run with 5,000 trees, stability can be evaluated as follows: 
+
+```{r eval=FALSE, message=FALSE}
+set.seed(123)
+stability_pred_5000 = measure_stability(y = Training[,1], X=Training[,-1], X_Test=Test, num.trees=5000, method="prediction")
+```
+```{r message=FALSE}
+stability_pred_5000
+```
+In this case, the prediction stability is 0.948 and the selection stability is 0.798 which should be published alongside the results. 
 
 ## Conclusions
 While random forest has many advantages and can be easily used to enable data-driven decision-making processes, it must be taken into consideration that random forest is a non-deterministic method that can lead to different prediction models and, thus, different decisions even when analysing the same data set. The stability of random forest depends strongly on the number of trees which not only increases stability but also computation time. The `optRF` package provides an efficient solution for this problem by modelling the relationship between the number of trees and the corresponding stability of random forest. With its `opt_prediction` function, users can systematically evaluate this relationship for a specific data set and determine the optimal number of trees required to achieve satisfactory stability and improve reproducibility. Researchers are encouraged to evaluate the stability of the chosen number of trees to ensure reliable and reproducible results when using random forest. 

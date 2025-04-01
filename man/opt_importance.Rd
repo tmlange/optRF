@@ -7,14 +7,14 @@
 opt_importance(
   y,
   X,
-  number.repetitions = 10,
+  number_repetitions = 10,
   alpha = 0.05,
   num.trees_values = c(250, 500, 750, 1000, 2000),
   importance = c("permutation", "impurity", "impurity_corrected"),
   visualisation = c("none", "importance", "selection"),
   recommendation = c("importance", "selection", "none"),
-  rec.thresh = 1e-06,
-  round.recommendation = c("thousand", "hundred", "ten", "none"),
+  rec_thresh = 1e-06,
+  round_recommendation = c("thousand", "hundred", "ten", "none"),
   verbose = TRUE,
   ...
 )
@@ -24,7 +24,7 @@ opt_importance(
 
 \item{X}{A data frame containing the explanatory variables. The number of rows must be equal to the number of elements in y.}
 
-\item{number.repetitions}{Number of repetitions of random forest to estimate the stability.}
+\item{number_repetitions}{Number of repetitions of random forest to estimate the stability. It needs to be at least 2. Default is 10.}
 
 \item{alpha}{The amount of most important variables to be selected based on their estimated variable importance. If < 1, alpha will be considered the relative amount of variables in the data set.}
 
@@ -36,9 +36,9 @@ opt_importance(
 
 \item{recommendation}{If set to "importance" (default) or "selection", a recommendation will be given based on optimised variable importance or selection stability. If set to be "none", the function will analyse the stability of random forest with the inserted numbers of trees without giving a recommendation.}
 
-\item{rec.thresh}{If the number of trees leads to an increase of stability smaller or equal to the value specified, this number of trees will be recommended. Default is 1e-6.}
+\item{rec_thresh}{If the number of trees leads to an increase of stability smaller or equal to the value specified, this number of trees will be recommended. Default is 1e-6.}
 
-\item{round.recommendation}{Setting to what number the recommended number of trees should be rounded to. Options: "none", "ten", "hundred", "thousand" (default).}
+\item{round_recommendation}{Setting to what number the recommended number of trees should be rounded to. Options: "none", "ten", "hundred", "thousand" (default).}
 
 \item{verbose}{Show computation status}
 

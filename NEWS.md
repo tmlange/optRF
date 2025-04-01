@@ -1,3 +1,17 @@
+# optRF 1.2.0
+
+## New Features
+
+-   Added function `measure_stability` to measure the stability of random forest for a certain data set with a certain number of trees.
+
+## Improvements
+
+-   Adding checks for validity of parameters `alpha`, `number_repetitions` and `rec_thresh`.
+
+## Other
+
+-   Updated `CITATION` file with published manuscript.
+
 # optRF 1.1.0
 
 ## New Features

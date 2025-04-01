@@ -1,4 +1,4 @@
-# optRF: Optimising random forest stability by determining the optimal number of trees
+# optRF: Optimising random forest stability by determining the optimal number of trees  <img src="man/figures/logo.png" align="right" height="120" alt="" />
 
 <!-- badges: start -->
 [![CRAN status](https://www.r-pkg.org/badges/version/optRF?color=green)](https://CRAN.R-project.org/package=optRF)
@@ -50,4 +50,4 @@ For detailed examples and explanations, refer to the package vignettes:
 
 ## Citing optRF
 If you use optRF in your research, please cite:  
-[Lange, T. M., Heinrich, F., Gültas, M. and Schmitt, A. O. (2024). optRF: Optimising random forest stability by determining the optimal number of trees. PREPRINT (Version 1) available at Research Square.](https://doi.org/10.21203/rs.3.rs-5432153/v1)
+[Lange, T.M., Gültas, M., Schmitt, A.O. & Heinrich, F. optRF: Optimising random forest stability by determining the optimal number of trees. BMC Bioinformatics 26, 95 (2025).](https://doi.org/10.1186/s12859-025-06097-1)

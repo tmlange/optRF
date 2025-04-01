@@ -177,6 +177,37 @@ To enhance reproducibility and reliability, the selection results should be publ
 summary(optRF_result_2)
 ```
 
+## The `measure_stability` function
+```{r echo=FALSE, message=FALSE}
+load("optRF_vignette_stabilityData.Rda")
+```  
+While optimising the number of trees is generally recommended for making predictions or estimating the importance of variables using random forest, the `optRF` package also allows users to assess the stability of a random forest model with a fixed number of trees. This can be done using the `measure_stability` function. Hereby, it must be indicated if random forest is used for predictions or to estimate variable importance by setting the `method` argument either to `prediction` or `importance`. 
+
+For instance, if random forest is set to run with 5,000 trees for prediction, stability can be evaluated as follows:  
+
+```{r eval=FALSE, message=FALSE}
+set.seed(123)
+stability_prediction = measure_stability(y = Training[,1], X=Training[,-1], X_Test=Test, num.trees=5000, method="prediction")
+```
+```{r message=FALSE}
+stability_prediction
+```
+
+In this case, the prediction stability is 0.948 and the selection stability is 0.798.
+
+If random forest is set to run with 5,000 trees to estimate the variable importance, stability can be evaluated as:
+
+```{r eval=FALSE, message=FALSE}
+set.seed(123)
+stability_importance = measure_stability(y = Training[,1], X=Training[,-1], X_Test=Test, num.trees=5000, method="importance")
+```
+```{r message=FALSE}
+stability_importance
+```
+
+In this case, the variable importance stability is 0.732 and the selection stability is 0.37. The stability of random forest should always be published alongside the results. 
+
+
 
 
 ## Conclusions

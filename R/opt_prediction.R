@@ -2,15 +2,16 @@
 #'
 #' @description Optimising random forest predictions by calculating the prediction stability with certain numbers of trees
 #'
-#' @param y A vector containing the response variable in the training data set.
-#' @param X A data frame containing the explanatory variables in the training data set. The number of rows must be equal to the number of elements in y.
 #' @param X_Test A data frame containing the explanatory variables of the test data set. If not entered, the out of bag data will be used.
 #' @param alpha The number of best individuals to be selected in the test data set based on their predicted response values. If < 1, alpha will be considered to be the relative amount of individuals in the test data set.
 #' @param visualisation Can be set to "prediction" to draw a plot of the prediction stability or "selection" to draw a plot of the selection stability for the numbers of trees to be analysed.
 #' @param select_for What should be selected? In random forest classification, this must be set to a vector containing the values of the desired classes. In random forest regression, this can be set as "high" (default) to select the individuals with the highest predicted value, "low" to select the individuals with the lowest predicted value, or "zero" to select the individuals which predicted value is closest to zero.
 #' @param recommendation If set to "prediction" (default) or "selection", a recommendation will be given based on optimised prediction or selection stability. If set to be "none", the function will analyse the stability of random forest with the inserted numbers of trees without giving a recommendation.
 #' @inheritParams round_rec_helper
+#' @inheritParams number_rep_helper
+#' @inheritParams rec_thresh_helper
 #' @inheritParams opt_shared_parameters
+#' @inheritParams prediction_shared_parameters
 #'
 #' @return An opt_prediction_object containing the recommended number of trees, based on which measure the recommendation was given (prediction or selection), a matrix summarising the estimated stability and computation time of a random forest with the recommended numbers of trees, a matrix containing the calculated stability and computation time for the analysed numbers of trees, and the parameters used to model the relationship between stability and numbers of trees.
 #'
@@ -33,15 +34,15 @@
 
 
 opt_prediction = function(y, X, X_Test=NULL,
-                          number.repetitions=10, alpha = 0.15,
-                          num.trees_values=c(250, 500, 750, 1000, 2000), visualisation = c("none","prediction","selection"), select_for = c("high", "low", "zero"),
+                          number_repetitions = 10, alpha = 0.15,
+                          num.trees_values = c(250, 500, 750, 1000, 2000), visualisation = c("none","prediction","selection"), select_for = c("high", "low", "zero"),
                           recommendation = c("prediction","selection", "none"),
-                          rec.thresh = 1e-6, round.recommendation = c("thousand","hundred","ten","none"), verbose = TRUE, ...){
+                          rec_thresh = 1e-6, round_recommendation = c("thousand","hundred","ten","none"), verbose = TRUE, ...){
 
   rec.num.trees = NA
 
   # Defining to what number the recommendation of number of trees should be rounded to
-  round.rec = round_rec_helper(round.recommendation)
+  round_rec = round_rec_helper(round_recommendation)
 
   # Check value of visualisation
   visualisation = match.arg(visualisation)
@@ -49,7 +50,13 @@ opt_prediction = function(y, X, X_Test=NULL,
   # Check value of recommendation
   recommendation = match.arg(recommendation)
 
-  # Test if data format is correct
+  # Check value of number_repetitions
+  number_repetitions = number_rep_helper(number_repetitions)
+
+  # Check value of rec_thresh
+  rec_thresh = rec_thresh_helper(rec_thresh)
+
+  # Check if y and X have the same number of observations
   if(!all.equal(nrow(X), length(y))){
     stop("Length of y does not equal number of rows of X \n")
   }
@@ -102,6 +109,9 @@ opt_prediction = function(y, X, X_Test=NULL,
     test_seq = seq(10, round((variable.number*100), -1), 10)
   }
 
+  if(!is.numeric(alpha) | any(alpha < 0)){
+    stop("alpha needs to be a positive number.")
+  }
   # Defining the number of individuals to be selected from the data set
   if(alpha < 1){
     selection.size = round(length(sample.IDs)*alpha)
@@ -117,10 +127,10 @@ opt_prediction = function(y, X, X_Test=NULL,
     D_preds = data.frame(ID= sample.IDs)
     D_selection = data.frame(ID= sample.IDs)
     time.taken = 0
-    for(rep in 1:number.repetitions){
+    for(rep in 1:number_repetitions){
 
       if(verbose){
-        message(paste0("Analysing random forest with ", num.trees_values[i], " trees, progress: ", round((rep/number.repetitions)*100, 0), "%            \r", sep=""), appendLF = F)
+        message(paste0("Analysing random forest with ", num.trees_values[i], " trees, progress: ", round((rep/number_repetitions)*100, 0), "%            \r", sep=""), appendLF = F)
       }
 
       start.time = Sys.time()
@@ -205,7 +215,7 @@ opt_prediction = function(y, X, X_Test=NULL,
     tmp_res = data.frame(num.trees_values = num.trees_values[i],
                          pred_stability = pred_stability,
                          selection_stability = kappam.fleiss(D_selection)$value,
-                         computation_time = time.taken/number.repetitions)
+                         computation_time = time.taken/number_repetitions)
     summary.result = rbind(summary.result, tmp_res)
 
     if(visualisation == "prediction"){
@@ -259,11 +269,11 @@ opt_prediction = function(y, X, X_Test=NULL,
       D_est.pv = D_est.pv[-1,]
 
       # Finally, make a recommendation
-      new.rec.thresh = rec.thresh
+      new.rec_thresh = rec_thresh
       trust.rec = FALSE
       while(trust.rec == FALSE){
 
-        rec.num.trees = round(D_est.pv[D_est.pv$diff<new.rec.thresh,]$num.trees[1], round.rec)
+        rec.num.trees = round(D_est.pv[D_est.pv$diff<new.rec_thresh,]$num.trees[1], round_rec)
 
         # Only trust the recommended number of trees, if the recommendation is greater than the inflection point
         if(rec.num.trees >= non.lin.mod.pv$m$getPars()[1]){
@@ -277,7 +287,7 @@ opt_prediction = function(y, X, X_Test=NULL,
 
         # If the recommendation is smaller than the inflection point, reduce the recommendation threshold by the factor 10
         if(rec.num.trees < non.lin.mod.pv$m$getPars()[1]){
-          new.rec.thresh = new.rec.thresh*0.1
+          new.rec_thresh = new.rec_thresh*0.1
         }
       }
     }, error=function(e){})
@@ -298,11 +308,11 @@ opt_prediction = function(y, X, X_Test=NULL,
       D_est.sv = D_est.sv[-1,]
 
       # Finally, make a recommendation
-      new.rec.thresh = rec.thresh
+      new.rec_thresh = rec_thresh
       trust.rec = FALSE
       while(trust.rec == FALSE){
 
-        rec.num.trees = round(D_est.sv[D_est.sv$diff<new.rec.thresh,]$num.trees[1], round.rec)
+        rec.num.trees = round(D_est.sv[D_est.sv$diff<new.rec_thresh,]$num.trees[1], round_rec)
 
         # Only trust the recommended number of trees, if the recommendation is greater than the inflection point
         if(rec.num.trees >= non.lin.mod.sv$m$getPars()[1]){
@@ -316,7 +326,7 @@ opt_prediction = function(y, X, X_Test=NULL,
 
         # If the recommendation is smaller than the inflection point, reduce the recommendation threshold by the factor 10
         if(rec.num.trees < non.lin.mod.sv$m$getPars()[1]){
-          new.rec.thresh = new.rec.thresh*0.1
+          new.rec_thresh = new.rec_thresh*0.1
         }
       }
     }, error=function(e){})

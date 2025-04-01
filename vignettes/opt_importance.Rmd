@@ -236,7 +236,7 @@ The relationship between stability and the number of trees can be conveniently v
 
 ```{r fig.width=6, fig.height=4.5, fig.align='center'}
 plot_stability(optRF_result_2, measure="selection", 
-               0, 100000, add.recommendation = FALSE, ylim=c(0, 1))
+               0, 100000, add_recommendation = FALSE, ylim=c(0, 1))
 abline(h=1, col="red")
 ```
 
@@ -265,12 +265,42 @@ The results indicate that when using random forest for variable selection with 5
 ## Customising the `opt_importance` function
 This vignette illustrated an application of the `opt_importance` function where one could assume that only around 1% of the variables in the data set affect the response. Using this assumption, the number of trees was adjusted to enable stable variable selection. However, this step becomes unnecessary if a user already knows the exact number of variables to select. In such cases, the desired number of variables can simply be specified directly in the `alpha` argument of the `opt_importance` function.
 
-In this example, the optimal number of trees was defined as the number of trees at which adding more trees would increase the variable importance stability by $10^{-6}$ or less. This threshold is arbitrary and can be customised using the `rec.thresh` argument to fit specific requirements. Next to setting the `recommendation` argument to `"importance"` (default) or `"selection"`, the `recommendation` argument can be set to `"none"` to analyse the relationship between the number of trees and stability without receiving a specific recommendation. The user can then manually determine the optimal number of trees using the `estimate_numtrees`, `estimate_stability`, and `plot_stability` functions.
+In this example, the optimal number of trees was defined as the number of trees at which adding more trees would increase the variable importance stability by $10^{-6}$ or less. This threshold is arbitrary and can be customised using the `rec_thresh` argument to fit specific requirements. Next to setting the `recommendation` argument to `"importance"` (default) or `"selection"`, the `recommendation` argument can be set to `"none"` to analyse the relationship between the number of trees and stability without receiving a specific recommendation. The user can then manually determine the optimal number of trees using the `estimate_numtrees`, `estimate_stability`, and `plot_stability` functions.
 
-Users can also adjust computational settings to tailor the `opt_prediction` function to their needs. Using the `number.repetitions` argument, it can be controlled how many repetitions are performed. Fewer repetitions will reduce computation time but may lead to more variable results. Using the `num.trees_values` argument, certain numbers of trees can be specified. Smaller ranges or fewer values will speed up computation but might reduce the precision of the stability analysis. We recommend not to adjust these arguments.
+Users can also adjust computational settings to tailor the `opt_prediction` function to their needs. Using the `number_repetitions` argument, it can be controlled how many repetitions are performed. Fewer repetitions will reduce computation time but may lead to more variable results. Using the `num.trees_values` argument, certain numbers of trees can be specified. Smaller ranges or fewer values will speed up computation but might reduce the precision of the stability analysis. We recommend not to adjust these arguments.
 
 Next to the arguments described here, the user can also add arguments from the `ranger` function to customise the application of `opt_prediction`. This gives the user the possibility to adjust the `num.threads` argument to allow for parallel computing or add specific values for hyperparameters in random forest such as `mtry`, `min.node.size`, or `sample.fraction`. 
 
+
+
+
+### Measuring the stability of random forest
+```{r echo=FALSE, message=FALSE}
+load("opt_importance_vignette_stabilityData.Rda")
+```  
+While optimising the number of trees is generally recommended for variable selection with random forest, the `optRF` package also allows users to assess the stability of a random forest model with a fixed number of trees. This can be done using the `measure_stability` function without running the `opt_importance` function first. Hereby, it must be indicated that random forest is used to estimate the variable importance by setting `method = "importance"`. 
+
+For example, to evaluate the stability of a random forest model using the default setting of 500 trees, you can run:
+
+```{r eval=FALSE, message=FALSE}
+set.seed(123)
+stability_imp_500 = measure_stability(y = Training[,1], X=Training[,-1], X_Test=Test, num.trees=500, method="importance")
+```
+```{r message=FALSE}
+stability_imp_500
+```
+The output of `measure_stability` shows that the variable importance stability is 0.243 while the selection stability is 0.144.
+
+If the number of trees in the random forest model has been predefined and optimisation is not required, the stability of the model can still be assessed using `measure_stability`. For instance, if the model is set to run with 10,000 trees, stability can be evaluated as follows: 
+
+```{r eval=FALSE, message=FALSE}
+set.seed(123)
+stability_imp_10000 = measure_stability(y = Training[,1], X=Training[,-1], X_Test=Test, num.trees=10000, method="importance")
+```
+```{r message=FALSE}
+stability_imp_10000
+```
+In this case, the variable importance stability is 0.839 and the selection stability is 0.48 which should be published alongside the results. 
 
 
 
