@@ -5,7 +5,7 @@
 #' @param measure A character string indicating which stability measure is to be plotted. One of "selection" (default, visualises selection stability), "prediction" (visualises prediction stability) or "importance" (visualises variable importance stability).
 #' @param from Smallest num.trees value to be plotted.
 #' @param to Greatest num.trees value to be plotted.
-#' @param add.recommendation When set as TRUE, if a recommendation was stated within the opt_prediction or opt_importance function, the recommended num.trees value as well as the expected random forest stability will be highlighted in the graph
+#' @param add_recommendation When set as TRUE, if a recommendation was stated within the opt_prediction or opt_importance function, the recommended num.trees value as well as the expected random forest stability will be highlighted in the graph
 #' @param add If FALSE, a new plot will be created, if TRUE, the graph will be added to an existing plot.
 #' @param ... Any other arguments from the plot function.
 #' @inheritParams estimate_plot_shared_parameters
@@ -17,8 +17,8 @@
 #' data(SNPdata)
 #' set.seed(123)
 #' result_optpred = opt_prediction(y = SNPdata[,1], X=SNPdata[,-1]) # optimise random forest
-#' plot_stability(result_optpred, measure = "prediction", add.recommendation = TRUE, add=FALSE)
-#' plot_stability(result_optpred, measure = "selection",  add.recommendation = FALSE, add=TRUE)
+#' plot_stability(result_optpred, measure = "prediction", add_recommendation = TRUE, add=FALSE)
+#' plot_stability(result_optpred, measure = "selection",  add_recommendation = FALSE, add=TRUE)
 #' }
 #'
 #' @export
@@ -27,7 +27,7 @@
 #' @importFrom graphics abline points
 
 plot_stability = function(optRF_object, measure = c("selection","importance","prediction"),
-                          from = 0, to = 100000, add.recommendation = TRUE,
+                          from = 0, to = 100000, add_recommendation = TRUE,
                           add = FALSE, ...){
 
   # Check if the correct object was inserted
@@ -48,7 +48,7 @@ plot_stability = function(optRF_object, measure = c("selection","importance","pr
       points(TwoPLmodel(plot_seq, param1, param2) ~ plot_seq,
              type="l", lwd=1.2, ...)
     }
-    if(add.recommendation == TRUE & !is.null(optRF_object$recommendation)){
+    if(add_recommendation == TRUE & !is.null(optRF_object$recommendation)){
       abline(v = optRF_object$recommendation, col=rgb(1, 0, 0, 0.5))
       abline(h = TwoPLmodel(optRF_object$recommendation, param1, param2),
              col=rgb(1, 0, 0, 0.5))

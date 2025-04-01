@@ -32,15 +32,15 @@
 
 
 
-opt_importance = function(y, X, number.repetitions=10, alpha = 0.05, num.trees_values= c(250, 500, 750, 1000, 2000),
+opt_importance = function(y, X, number_repetitions = 10, alpha = 0.05, num.trees_values = c(250, 500, 750, 1000, 2000),
                           importance = c("permutation", "impurity", "impurity_corrected"),
-                          visualisation= c("none","importance","selection"), recommendation = c("importance","selection","none"),
-                          rec.thresh=1e-6, round.recommendation = c("thousand","hundred","ten","none"), verbose = TRUE, ...){
+                          visualisation = c("none","importance","selection"), recommendation = c("importance","selection","none"),
+                          rec_thresh = 1e-6, round_recommendation = c("thousand","hundred","ten","none"), verbose = TRUE, ...){
 
   rec.num.trees = NA
 
   # Defining to what number the recommendation of number of trees should be rounded to
-  round.rec = round_rec_helper(round.recommendation)
+  round_rec = round_rec_helper(round_recommendation)
 
   # Check value of importance
   importance = match.arg(importance)
@@ -51,11 +51,11 @@ opt_importance = function(y, X, number.repetitions=10, alpha = 0.05, num.trees_v
   # Check value of recommendation
   recommendation = match.arg(recommendation)
 
-  # Check value of number.repetitions
-  number.repetitions = number_rep_helper(number.repetitions)
+  # Check value of number_repetitions
+  number_repetitions = number_rep_helper(number_repetitions)
 
-  # Check value of rec.thresh
-  rec.thresh = rec_thresh_helper(rec.thresh)
+  # Check value of rec_thresh
+  rec_thresh = rec_thresh_helper(rec_thresh)
 
   # If y is neither numeric nor a factor, return an error message
   if(!is.numeric(y) & !is.factor(y)){
@@ -99,11 +99,11 @@ opt_importance = function(y, X, number.repetitions=10, alpha = 0.05, num.trees_v
     D_VI = data.frame(variable.name = names(X))
     D_selection = data.frame(variable.name = names(X))
     time.taken = 0
-    for(rep in 1:number.repetitions){
+    for(rep in 1:number_repetitions){
 
       # Perform random forest to estimate the importance per variable
       if(verbose){
-        message(paste0("Analysing random forest with ", num.trees_values[i], " trees, progress: ", round((rep/number.repetitions)*100, 0), "%            \r", sep=""), appendLF = F)
+        message(paste0("Analysing random forest with ", num.trees_values[i], " trees, progress: ", round((rep/number_repetitions)*100, 0), "%            \r", sep=""), appendLF = F)
       }
 
       start.time = Sys.time()
@@ -139,7 +139,7 @@ opt_importance = function(y, X, number.repetitions=10, alpha = 0.05, num.trees_v
     tmp_res = data.frame(num.trees_values = num.trees_values[i],
                          VI_stability = icc(D_VI)$value,
                          selection_stability = kappam.fleiss(D_selection)$value,
-                         computation_time = time.taken/number.repetitions)
+                         computation_time = time.taken/number_repetitions)
     summary.result = rbind(summary.result, tmp_res)
 
     if(visualisation == "importance"){
@@ -193,11 +193,11 @@ opt_importance = function(y, X, number.repetitions=10, alpha = 0.05, num.trees_v
       D_est.VIv = D_est.VIv[-1,]
 
       # Finally, make a recommendation
-      new.rec.thresh = rec.thresh
+      new.rec_thresh = rec_thresh
       trust.rec = FALSE
       while(trust.rec == FALSE){
 
-        rec.num.trees = round(D_est.VIv[D_est.VIv$diff<new.rec.thresh,]$num.trees[1], round.rec)
+        rec.num.trees = round(D_est.VIv[D_est.VIv$diff<new.rec_thresh,]$num.trees[1], round_rec)
 
         # Only trust the recommended number of trees, if the recommendation is greater than the inflection point
         if(rec.num.trees >= non.lin.mod.VIv$m$getPars()[1]){
@@ -211,7 +211,7 @@ opt_importance = function(y, X, number.repetitions=10, alpha = 0.05, num.trees_v
 
         # If the recommendation is smaller than the inflection point, reduce the recommendation threshold by the factor 10
         if(rec.num.trees < non.lin.mod.VIv$m$getPars()[1]){
-          new.rec.thresh = new.rec.thresh*0.1
+          new.rec_thresh = new.rec_thresh*0.1
         }
       }
     }, error=function(e){})
@@ -233,11 +233,11 @@ opt_importance = function(y, X, number.repetitions=10, alpha = 0.05, num.trees_v
       D_est.sv = D_est.sv[-1,]
 
       # Finally, make a recommendation
-      new.rec.thresh = rec.thresh
+      new.rec_thresh = rec_thresh
       trust.rec = FALSE
       while(trust.rec == FALSE){
 
-        rec.num.trees = round(D_est.sv[D_est.sv$diff<new.rec.thresh,]$num.trees[1], round.rec)
+        rec.num.trees = round(D_est.sv[D_est.sv$diff<new.rec_thresh,]$num.trees[1], round_rec)
 
         # Only trust the recommended number of trees, if the recommendation is greater than the inflection point
         if(rec.num.trees >= non.lin.mod.sv$m$getPars()[1]){
@@ -251,7 +251,7 @@ opt_importance = function(y, X, number.repetitions=10, alpha = 0.05, num.trees_v
 
         # If the recommendation is smaller than the inflection point, reduce the recommendation threshold by the factor 10
         if(rec.num.trees < non.lin.mod.sv$m$getPars()[1]){
-          new.rec.thresh = new.rec.thresh*0.1
+          new.rec_thresh = new.rec_thresh*0.1
         }
       }
     }, error=function(e){})

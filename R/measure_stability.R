@@ -8,7 +8,6 @@
 #' @param alpha If method is "prediction", the number of best individuals to be selected in the test data set (default = 0.15), if method is "importance", the number of most important variables to be selected (default = 0.05).
 #' @param select_for If method is "prediction", what should be selected? In random forest classification, this must be set to a vector containing the values of the desired classes. In random forest regression, this can be set as "high" (default) to select the individuals with the highest predicted value, "low" to select the individuals with the lowest predicted value, or "zero" to select the individuals which predicted value is closest to zero.
 #' @param importance If method is "importance", the variable importance mode, one of "permutation" (default), "impurity" or "impurity_corrected".
-#' @param number.repetitions Number of repetitions of random forest to measure the stability.
 #' @param verbose Show computation status.
 #' @param ... Any other argument from the ranger function.
 #' @inheritParams number_rep_helper
@@ -30,24 +29,24 @@
 #' @importFrom ranger ranger
 
 
-measure_stability = function(y, X, num.trees=500, method=c("prediction","selection"), X_Test=NULL,
-                             alpha = 0.15, select_for = c("high", "low", "zero"),
+measure_stability = function(y, X, num.trees=500, method=c("prediction","importance"), X_Test=NULL,
+                             alpha = NULL, select_for = c("high", "low", "zero"),
                              importance = c("permutation", "impurity", "impurity_corrected"),
-                             number.repetitions=10, verbose = TRUE, ...){
+                             number_repetitions=10, verbose = TRUE, ...){
 
   # Check value of method
   method = match.arg(method)
 
-  # Check value of number.repetitions
-  number.repetitions = number_rep_helper(number.repetitions)
+  # Check value of number_repetitions
+  number_repetitions = number_rep_helper(number_repetitions)
 
   # Check if y and X have the same number of observations
   if(!all.equal(nrow(X), length(y))){
     stop("Length of y does not equal number of rows of X \n")
   }
 
-  if(!is.numeric(number.repetitions) | any(number.repetitions < 0)){
-    stop("number.repetitions needs to be a positive number.")
+  if(!is.numeric(number_repetitions) | any(number_repetitions < 0)){
+    stop("number_repetitions needs to be a positive number.")
   }
 
   if(!is.numeric(num.trees) | any(num.trees < 1)){
@@ -96,6 +95,10 @@ measure_stability = function(y, X, num.trees=500, method=c("prediction","selecti
       sample.IDs = paste0("ID_", c(1:nrow(X_Test)))
     }
 
+    if(is.null(alpha)){
+      alpha = 0.15
+    }
+
     if(!is.numeric(alpha) | any(alpha < 0)){
       stop("alpha needs to be a positive number.")
     }
@@ -112,10 +115,10 @@ measure_stability = function(y, X, num.trees=500, method=c("prediction","selecti
       D_preds = data.frame(ID= sample.IDs)
       D_selection = data.frame(ID= sample.IDs)
 
-      for(rep in 1:number.repetitions){
+      for(rep in 1:number_repetitions){
 
         if(verbose){
-          message(paste0("Analysing random forest with ", num.trees[i], " trees, progress: ", round((rep/number.repetitions)*100, 0), "%            \r", sep=""), appendLF = F)
+          message(paste0("Analysing random forest with ", num.trees[i], " trees, progress: ", round((rep/number_repetitions)*100, 0), "%            \r", sep=""), appendLF = F)
         }
 
         myForest <- ranger(x=X,
@@ -229,10 +232,10 @@ measure_stability = function(y, X, num.trees=500, method=c("prediction","selecti
 
       D_VI = data.frame(variable.name = names(X))
       D_selection = data.frame(variable.name = names(X))
-      for(rep in 1:number.repetitions){
+      for(rep in 1:number_repetitions){
 
         if(verbose){
-          message(paste0("Analysing random forest with ", num.trees[i], " trees, progress: ", round((rep/number.repetitions)*100, 0), "%            \r", sep=""), appendLF = F)
+          message(paste0("Analysing random forest with ", num.trees[i], " trees, progress: ", round((rep/number_repetitions)*100, 0), "%            \r", sep=""), appendLF = F)
         }
 
         myForest <- ranger(x=X,

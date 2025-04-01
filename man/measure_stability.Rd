@@ -8,12 +8,12 @@ measure_stability(
   y,
   X,
   num.trees = 500,
-  method = c("prediction", "selection"),
+  method = c("prediction", "importance"),
   X_Test = NULL,
-  alpha = 0.15,
+  alpha = NULL,
   select_for = c("high", "low", "zero"),
   importance = c("permutation", "impurity", "impurity_corrected"),
-  number.repetitions = 10,
+  number_repetitions = 10,
   verbose = TRUE,
   ...
 )
@@ -35,7 +35,7 @@ measure_stability(
 
 \item{importance}{If method is "importance", the variable importance mode, one of "permutation" (default), "impurity" or "impurity_corrected".}
 
-\item{number.repetitions}{Number of repetitions of random forest to measure the stability.}
+\item{number_repetitions}{Number of repetitions of random forest to estimate the stability. It needs to be at least 2. Default is 10.}
 
 \item{verbose}{Show computation status.}
 

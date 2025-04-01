@@ -9,7 +9,7 @@ plot_stability(
   measure = c("selection", "importance", "prediction"),
   from = 0,
   to = 1e+05,
-  add.recommendation = TRUE,
+  add_recommendation = TRUE,
   add = FALSE,
   ...
 )
@@ -23,7 +23,7 @@ plot_stability(
 
 \item{to}{Greatest num.trees value to be plotted.}
 
-\item{add.recommendation}{When set as TRUE, if a recommendation was stated within the opt_prediction or opt_importance function, the recommended num.trees value as well as the expected random forest stability will be highlighted in the graph}
+\item{add_recommendation}{When set as TRUE, if a recommendation was stated within the opt_prediction or opt_importance function, the recommended num.trees value as well as the expected random forest stability will be highlighted in the graph}
 
 \item{add}{If FALSE, a new plot will be created, if TRUE, the graph will be added to an existing plot.}
 
@@ -40,8 +40,8 @@ Plot the estimated stability of random forest against certain numbers of trees
 data(SNPdata)
 set.seed(123)
 result_optpred = opt_prediction(y = SNPdata[,1], X=SNPdata[,-1]) # optimise random forest
-plot_stability(result_optpred, measure = "prediction", add.recommendation = TRUE, add=FALSE)
-plot_stability(result_optpred, measure = "selection",  add.recommendation = FALSE, add=TRUE)
+plot_stability(result_optpred, measure = "prediction", add_recommendation = TRUE, add=FALSE)
+plot_stability(result_optpred, measure = "selection",  add_recommendation = FALSE, add=TRUE)
 }
 
 }

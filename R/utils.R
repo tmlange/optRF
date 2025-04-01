@@ -13,13 +13,13 @@ NULL
 #' @name estimate_plot_shared_parameters
 NULL
 
-#' @param round.recommendation Setting to what number the recommended number of trees should be rounded to. Options: "none", "ten", "hundred", "thousand" (default).
-round_rec_helper = function(round.recommendation = c("thousand","hundred","ten","none")){
+#' @param round_recommendation Setting to what number the recommended number of trees should be rounded to. Options: "none", "ten", "hundred", "thousand" (default).
+round_rec_helper = function(round_recommendation = c("thousand","hundred","ten","none")){
 
-  round.recommendation = match.arg(round.recommendation)
+  round_recommendation = match.arg(round_recommendation)
 
   switch(
-    round.recommendation,
+    round_recommendation,
     none = 0,
     ten = -1,
     hundred = -2,
@@ -27,20 +27,20 @@ round_rec_helper = function(round.recommendation = c("thousand","hundred","ten",
   )
 }
 
-#' @param number.repetitions Number of repetitions of random forest to estimate the stability. It needs to be at least 2. Default is 10.
-number_rep_helper = function(number.repetitions){
-  if(!is.numeric(number.repetitions) | number.repetitions[1] < 2){
-    stop("number.repetitions needs to be a number >= 2.")
+#' @param number_repetitions Number of repetitions of random forest to estimate the stability. It needs to be at least 2. Default is 10.
+number_rep_helper = function(number_repetitions){
+  if(!is.numeric(number_repetitions) | number_repetitions[1] < 2){
+    stop("number_repetitions needs to be a number >= 2.")
   }
-  number.repetitions = ceiling(number.repetitions[1])
+  number_repetitions = ceiling(number_repetitions[1])
 }
 
-#' @param rec.thresh If the number of trees leads to an increase of stability smaller or equal to the value specified, this number of trees will be recommended. Default is 1e-6.
-rec_thresh_helper = function(rec.thresh){
-  if(!is.numeric(rec.thresh) | rec.thresh <= 0){
-    stop("rec.thresh needs to be a positive number.")
+#' @param rec_thresh If the number of trees leads to an increase of stability smaller or equal to the value specified, this number of trees will be recommended. Default is 1e-6.
+rec_thresh_helper = function(rec_thresh){
+  if(!is.numeric(rec_thresh) | rec_thresh <= 0){
+    stop("rec_thresh needs to be a positive number.")
   }
-  rec.thresh = rec.thresh[1]
+  rec_thresh = rec_thresh[1]
 }
 
 TwoPLmodel = function(vec, p1, p2){
