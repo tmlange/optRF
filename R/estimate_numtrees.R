@@ -46,11 +46,11 @@ estimate_numtrees = function(optRF_object, measure = c("selection","importance",
     if(nrow(optRF_object$model.parameters) == 2){ # If a model for prediction and selection could be produced, produce estimates for both measures
 
       if(measure == "prediction"){
-      opt_numtrees = TwoPLmodel.inv(for_stability, optRF_object$model.parameters[1,1], optRF_object$model.parameters[1,2])
-      D_est = data.frame(prediction_stability = for_stability,
-                         opt_numtrees = ceiling(opt_numtrees),
-                         computation_time = estimate_runtime(opt_numtrees, runtime_model$coefficients[1], runtime_model$coefficients[2]))
-      return(D_est)
+        opt_numtrees = TwoPLmodel.inv(for_stability, optRF_object$model.parameters[1,1], optRF_object$model.parameters[1,2])
+        D_est = data.frame(prediction_stability = for_stability,
+                           opt_numtrees = ceiling(opt_numtrees),
+                           computation_time = estimate_runtime(opt_numtrees, runtime_model$coefficients[1], runtime_model$coefficients[2]))
+        return(D_est)
       }
 
       if(measure == "selection"){
