@@ -52,7 +52,7 @@ TwoPLmodel.inv = function(vec, p1, p2){
 }
 
 estimate_runtime = function(vec, p1, p2){
-  p1 + vec*p2
+  as.numeric(p1) + vec*as.numeric(p2)
 }
 
 #' Creates a plot of stability dependent on the number of trees, which is used by the \link{opt_importance} and the \link{opt_prediction} functions.
