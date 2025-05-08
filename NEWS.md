@@ -1,3 +1,13 @@
+# optRF 1.2.1
+
+## Improvements
+
+-   Improved output of `estimate_numtrees` and `estimate_stability` functions
+
+## Bug Fixes
+
+-   Fixed a bug with the plot functions for the `opt_importance_object` and `opt_prediction_object` objects.
+
 # optRF 1.2.0
 
 ## New Features
