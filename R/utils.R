@@ -1,5 +1,6 @@
 #' @param num.trees_values A vector containing the numbers of trees to be analysed. If not specified, 250, 500, 750, 1000, and 2000 trees will be analysed.
 #' @param verbose Show computation status
+#' @param response_type What data type is the response variable? Either "metric", "ordinal", or "categorical" are possible. If not set, the data type will be guessed 
 #' @param ... Any other argument from the ranger function.
 #' @name opt_shared_parameters
 NULL

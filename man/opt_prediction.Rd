@@ -2,7 +2,7 @@
 % Please edit documentation in R/opt_prediction.R
 \name{opt_prediction}
 \alias{opt_prediction}
-\title{Optimise random forest for prediction}
+\title{Optimise random forest predictions}
 \usage{
 opt_prediction(
   y,
@@ -16,6 +16,9 @@ opt_prediction(
   recommendation = c("prediction", "selection", "none"),
   rec_thresh = 1e-06,
   round_recommendation = c("thousand", "hundred", "ten", "none"),
+  response_type = NULL,
+  Krippendorf = NULL,
+  rank_based = FALSE,
   verbose = TRUE,
   ...
 )
@@ -42,6 +45,12 @@ opt_prediction(
 \item{rec_thresh}{If the number of trees leads to an increase of stability smaller or equal to the value specified, this number of trees will be recommended. Default is 1e-6.}
 
 \item{round_recommendation}{Setting to what number the recommended number of trees should be rounded to. Options: "none", "ten", "hundred", "thousand" (default).}
+
+\item{response_type}{What data type is the response variable? Either "metric", "ordinal", or "categorical" are possible. If not set, the data type will be guessed}
+
+\item{Krippendorf}{If the response is metric, should the prediction stability be calculated as the intraclass correlation coefficient (default) or as Krippendorf's alpha? If Krippendorf's alpha should be computed, the parameter "Krippendorf" must be set to either "interval" or "ratio" depending on the scale of the response variable.}
+
+\item{rank_based}{If the response is metric, should the prediction stability be defined by the similarity of the predicted values via the intraclass correlation coefficient (rank_based == FALSE, default) or by the rankings of the objects via Kendall's W (rank_based == TRUE)?}
 
 \item{verbose}{Show computation status}
 

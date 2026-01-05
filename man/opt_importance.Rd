@@ -2,7 +2,7 @@
 % Please edit documentation in R/opt_importance.R
 \name{opt_importance}
 \alias{opt_importance}
-\title{Optimise random forest for estimation of variable importance}
+\title{Optimise random forest variable importance estimations}
 \usage{
 opt_importance(
   y,
@@ -15,6 +15,8 @@ opt_importance(
   recommendation = c("importance", "selection", "none"),
   rec_thresh = 1e-06,
   round_recommendation = c("thousand", "hundred", "ten", "none"),
+  rank_based = FALSE,
+  response_type = NULL,
   verbose = TRUE,
   ...
 )
@@ -39,6 +41,10 @@ opt_importance(
 \item{rec_thresh}{If the number of trees leads to an increase of stability smaller or equal to the value specified, this number of trees will be recommended. Default is 1e-6.}
 
 \item{round_recommendation}{Setting to what number the recommended number of trees should be rounded to. Options: "none", "ten", "hundred", "thousand" (default).}
+
+\item{rank_based}{Should the variable importance stability be defined by the similarity of the estimated variable importance values via the intraclass correlation coefficient (rank_based == FALSE, default) or by the rankings of the variables via Kendall's W (rank_based == TRUE)?}
+
+\item{response_type}{What data type is the response variable? Either "metric", "ordinal", or "categorical" are possible. If not set, the data type will be guessed}
 
 \item{verbose}{Show computation status}
 
