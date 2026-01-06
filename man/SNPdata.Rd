@@ -20,10 +20,8 @@ being coded as 0 for homozygous form of the major allele and 2 for homozygous fo
 minor allele.
 }
 \examples{
-
 data(SNPdata)
 SNPdata[1:5,1:5]
-
 }
 \references{
 This artificial data set was created for the optRF package.
