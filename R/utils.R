@@ -92,3 +92,15 @@ non_linear_modelling = function(summary.result, variable, test_seq, visualisatio
   }
   return(non.lin.mod)
 }
+
+#' Internal helper to safely print metrics from a stability table
+#' 
+#' @param stats A data frame or matrix containing the metrics.
+#' @param label The string to display to the user.
+#' @param row_name The row name to look for in the table.
+#' @noRd
+.print_metric = function(stats, label, row_name) {
+  if (row_name %in% rownames(stats)) {
+    cat(label, ": ", stats[row_name, 1], "\n", sep = "")
+  }
+}
