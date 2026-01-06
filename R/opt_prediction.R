@@ -343,34 +343,29 @@ opt_prediction = function(y, X, X_Test=NULL,
                            computation_time = time.taken/number_repetitions)
       summary.result = rbind(summary.result, tmp_res)
     }
+    
+    if(visualisation == "prediction"){
+      create_stability_plot(summary.result$pred_stability, summary.result$num.trees_values, "prediction stability")
+    }
+    
+    if(visualisation == "selection"){
+      create_stability_plot(summary.result$selection_stability, summary.result$num.trees_values, "selection stability")
+    }
+    
+    # If there are more than four data points, model the relationship(s)
+    if(nrow(summary.result) >= 4){
+      
+      # non linear modelling of the relationship between prediction stability and num.trees values
+      predictionStab = fit_stability_model(summary.result, "pred_stability", test_seq, visualisation == "prediction")
+      
+      # non linear modelling of the relationship between selection stability and num.trees values
+      selectionStab = fit_stability_model(summary.result, "selection_stability", test_seq, visualisation == "selection")
+      
+      # linear modelling of the relationship between run time and num.trees values
+      runtime_model = lm(summary.result$computation_time ~ summary.result$num.trees_values)
+    }
   }
   
-  if(visualisation == "prediction"){
-    create_stability_plot(summary.result$pred_stability, summary.result$num.trees_values, "prediction stability")
-  }
-  
-  if(visualisation == "selection"){
-    create_stability_plot(summary.result$selection_stability, summary.result$num.trees_values, "selection stability")
-  }
-  
-  # If there are more than four data points, model the relationship(s)
-  if(nrow(summary.result) >= 4){
-    
-    # non linear modelling of the relationship between prediction stability and num.trees values
-    predictionStab = fit_stability_model(summary.result, "pred_stability", test_seq, visualisation == "prediction")
-    
-    # non linear modelling of the relationship between selection stability and num.trees values
-    selectionStab = fit_stability_model(summary.result, "selection_stability", test_seq, visualisation == "selection")
-    
-    # linear modelling of the relationship between run time and num.trees values
-    runtime_model = lm(summary.result$computation_time ~ summary.result$num.trees_values)
-  }
-  if(is.null(predictionStab)){
-    message("predictionStab doesn't exist")
-  }
-  if(is.null(selectionStab)){
-    message("selectionStab doesn't exist")
-  }
   # After all num.trees_values have been analysed, give a recommendation
   recommended_num.trees = NA
   # If recommendation should be done with the prediction stability, optimise numbers of trees based on estimated prediction stability
