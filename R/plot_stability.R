@@ -24,7 +24,7 @@
 #' @export
 
 plot_stability = function(optRF_object, measure = c("selection","importance","prediction"),
-                          from = 0, to = 100000, add_recommendation = TRUE,
+                          from = 1, to = 100000, add_recommendation = TRUE,
                           add = FALSE, ...){
 
   # Check if the correct object was inserted
