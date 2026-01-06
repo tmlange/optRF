@@ -357,194 +357,57 @@ opt_prediction = function(y, X, X_Test=NULL,
   if(nrow(summary.result) >= 4){
     
     # non linear modelling of the relationship between prediction stability and num.trees values
-    tryCatch({
-      non.lin.mod.pv = non_linear_modelling(summary.result, "pred_stability", test_seq, visualisation == "prediction")
-      D_est.pv = data.frame(num.trees = test_seq,
-                            estimated_prediction_stability = TwoPLmodel(test_seq, non.lin.mod.pv$m$getPars()[1], non.lin.mod.pv$m$getPars()[2]))
-    }, error=function(e){})
+    predictionStab = fit_stability_model(summary.result, "pred_stability", test_seq, visualisation == "prediction")
     
     # non linear modelling of the relationship between selection stability and num.trees values
-    tryCatch({
-      non.lin.mod.sv = non_linear_modelling(summary.result, "selection_stability", test_seq, visualisation == "selection")
-      D_est.sv = data.frame(num.trees = test_seq,
-                            estimated_selection_stability = TwoPLmodel(test_seq, non.lin.mod.sv$m$getPars()[1], non.lin.mod.sv$m$getPars()[2]))
-    }, error=function(e){})
+    selectionStab = fit_stability_model(summary.result, "selection_stability", test_seq, visualisation == "selection")
     
     # linear modelling of the relationship between run time and num.trees values
-    tryCatch({
-      runtime_model = lm(summary.result$computation_time ~ summary.result$num.trees_values)
-      D_est.rt = data.frame(num.trees = test_seq,
-                            estimated_run_time = estimate_runtime(test_seq, runtime_model$coefficients[1], runtime_model$coefficients[2]))
-    }, error=function(e){})
-    
+    runtime_model = lm(summary.result$computation_time ~ summary.result$num.trees_values)
   }
-  
+  if(is.null(predictionStab)){
+    message("predictionStab doesn't exist")
+  }
+  if(is.null(selectionStab)){
+    message("selectionStab doesn't exist")
+  }
   # After all num.trees_values have been analysed, give a recommendation
-  
+  recommended_num.trees = NA
   # If recommendation should be done with the prediction stability, optimise numbers of trees based on estimated prediction stability
-  if(recommendation == "prediction"){
-    
-    if(!exists('D_est.pv')){
-      warning("A recommendation cannot be given because the relationship between prediction stability and numbers of trees could not be modelled.")
-    }
-    
-    # Try to perform a recommendation using a non-linear model
-    tryCatch({
-      
-      # Calculate the increase of prediction stability per increase of trees
-      D_est.pv$diff = c(NA,diff(D_est.pv$estimated_prediction_stability)/10)
-      D_est.pv = D_est.pv[-1,]
-      
-      # Finally, make a recommendation
-      new.rec_thresh = rec_thresh
-      trust.rec = FALSE
-      while(trust.rec == FALSE){
-        
-        rec.num.trees = round(D_est.pv[D_est.pv$diff<new.rec_thresh,]$num.trees[1], round_rec)
-        
-        # Only trust the recommended number of trees, if the recommendation is greater than the inflection point
-        if(rec.num.trees >= non.lin.mod.pv$m$getPars()[1]){
-          if(exists('D_est.sv')){
-            estimated_final_selection_stability = D_est.sv[D_est.sv$num.trees==rec.num.trees,]$estimated_selection_stability
-          }
-          estimated_final_prediction_stability = D_est.pv[D_est.pv$num.trees==rec.num.trees,]$estimated_prediction_stability
-          estimated_final_run_time = D_est.rt[D_est.rt$num.trees==rec.num.trees,]$estimated_run_time
-          trust.rec = TRUE
-        }
-        
-        # If the recommendation is smaller than the inflection point, reduce the recommendation threshold by the factor 10
-        if(rec.num.trees < non.lin.mod.pv$m$getPars()[1]){
-          new.rec_thresh = new.rec_thresh*0.1
-        }
-      }
-    }, error=function(e){})
+  if(recommendation == "prediction" && !is.null(predictionStab)){
+    recommended_num.trees = find_recommendation(predictionStab$estimates, predictionStab$model, rec_thresh, round_rec)
+  } else if(recommendation == "selection" && !is.null(selectionStab)){
+    recommended_num.trees = find_recommendation(selectionStab$estimates, selectionStab$model, rec_thresh, round_rec)
+  } else if(recommendation != "none"){
+    warning("A recommendation cannot be given because the relationship between the requested stability and numbers of trees could not be modelled.")
   }
   
-  # If recommendation should be done with the selection stability, optimise numbers of trees based on estimated selection stability
-  if(recommendation == "selection"){
-    
-    if(!exists('D_est.sv')){
-      warning("A recommendation cannot be given because the relationship between selection stability and numbers of trees could not be modelled.")
-    }
-    
-    # Try to perform a recommendation using a non-linear model
-    tryCatch({
-      
-      # Calculate the increase of selection stability per increase of trees
-      D_est.sv$diff = c(NA,diff(D_est.sv$estimated_selection_stability)/10)
-      D_est.sv = D_est.sv[-1,]
-      
-      # Finally, make a recommendation
-      new.rec_thresh = rec_thresh
-      trust.rec = FALSE
-      while(trust.rec == FALSE){
-        
-        rec.num.trees = round(D_est.sv[D_est.sv$diff<new.rec_thresh,]$num.trees[1], round_rec)
-        
-        # Only trust the recommended number of trees, if the recommendation is greater than the inflection point
-        if(rec.num.trees >= non.lin.mod.sv$m$getPars()[1]){
-          if(exists('D_est.pv')){
-            estimated_final_prediction_stability = D_est.pv[D_est.pv$num.trees==rec.num.trees,]$estimated_prediction_stability
-          }
-          estimated_final_selection_stability = D_est.sv[D_est.sv$num.trees==rec.num.trees,]$estimated_selection_stability
-          estimated_final_run_time = D_est.rt[D_est.rt$num.trees==rec.num.trees,]$estimated_run_time
-          trust.rec = TRUE
-        }
-        
-        # If the recommendation is smaller than the inflection point, reduce the recommendation threshold by the factor 10
-        if(rec.num.trees < non.lin.mod.sv$m$getPars()[1]){
-          new.rec_thresh = new.rec_thresh*0.1
-        }
-      }
-    }, error=function(e){})
+  # Create output
+  # Base output
+  output = list(prediction_stability_definition = ps_definition, result_table = summary.result)
+  # Add model parameters if available
+  model_params = list()
+  if(!is.null(predictionStab)) model_params[["Prediction_stability"]] = predictionStab$model$m$getPars()
+  if(!is.null(selectionStab)) model_params[["Selection_stability"]] = selectionStab$model$m$getPars()
+  if(length(model_params) > 0){
+    modelpara_matrix = do.call(rbind, model_params)
+    colnames(modelpara_matrix) = c("Inflection_point", "Slope")
+    output$model_parameters = modelpara_matrix
   }
-  
-  # Create the output based on the recommended number of trees
-  if(!is.na(rec.num.trees)){
-    
+  # Add recommendation if available
+  if(!is.na(recommended_num.trees)){
     # If the recommended number of trees is for some reason lower than 500 (default), set it to be 500
-    if(rec.num.trees < 500){
-      rec.num.trees = 500
-    }
-    
-    if(verbose){
-      message("\n Recommended number of trees: ", rec.num.trees)
-    }
-    
-    # Create output
-    
-    # if prediction and selection stability could be modeled
-    if(exists('D_est.pv') & exists('D_est.sv')){
-      modelpara.matrix = matrix(c(non.lin.mod.pv$m$getPars(), non.lin.mod.sv$m$getPars()), ncol=2, byrow=T)
-      rownames(modelpara.matrix) = c("Prediction_stability", "Selection_stability")
-      
-      RFstab.matrix = matrix(c(rec.num.trees, estimated_final_prediction_stability, estimated_final_selection_stability, estimated_final_run_time))
-      rownames(RFstab.matrix) = c("num.trees", "Prediction_stability", "Selection_stability", "Computation_time")
-    }
-    
-    # if prediction stability could be modeled but selection stability could not be modeled
-    if(exists('D_est.pv') & !exists('D_est.sv')){
-      warning("Could not produce a nonlinear model to describe the relationship between selection stability and num.trees values\n")
-      modelpara.matrix = matrix(non.lin.mod.pv$m$getPars(), ncol=2, byrow=T)
-      rownames(modelpara.matrix) = c("Prediction_stability")
-      
-      RFstab.matrix = matrix(c(rec.num.trees, estimated_final_prediction_stability, estimated_final_run_time))
-      rownames(RFstab.matrix) = c("num.trees", "Prediction_stability", "Computation_time")
-    }
-    
-    # If selection stability could be modeled but prediction stability could not
-    if(!exists('D_est.pv') & exists('D_est.sv')){
-      warning("Could not produce a nonlinear model to describe the relationship between prediction stability and num.trees values\n")
-      modelpara.matrix = matrix(non.lin.mod.sv$m$getPars(), ncol=2, byrow=T)
-      rownames(modelpara.matrix) = c("Selection_stability")
-      
-      RFstab.matrix = matrix(c(rec.num.trees, estimated_final_selection_stability, estimated_final_run_time))
-      rownames(RFstab.matrix) = c("num.trees", "Selection_stability", "Computation_time")
-    }
-    colnames(modelpara.matrix) = c("Inflection_point", "Slope")
-    colnames(RFstab.matrix) = c("Value")
-    
-    output = list(rec.num.trees, recommendation, ps_definition, RFstab.matrix, summary.result, modelpara.matrix)
-    names(output) = c("recommendation", "recommendation_for", "prediction_stability_definition", "expected_RF_stability", "result.table", "model.parameters")
-    class(output) = "opt_prediction_object"
-    return(output)
+    if(recommended_num.trees < 500) recommended_num.trees = 500
+    if(verbose) message("\n Recommended number of trees: ", recommended_num.trees)
+    output$recommendation = recommended_num.trees
+    output$recommendation_for = recommendation
+    # Calculate expected stability for recommended number of trees
+    stab_values = c()
+    if(!is.null(predictionStab)) stab_values["Prediction_stability"] = predictionStab$estimates[predictionStab$estimates$num.trees==recommended_num.trees,]$estimated_stability
+    if(!is.null(selectionStab)) stab_values["Selection_stability"] = selectionStab$estimates[selectionStab$estimates$num.trees==recommended_num.trees,]$estimated_stability
+    stab_values["Computation_time"] = estimate_runtime(recommended_num.trees, runtime_model$coefficients[1], runtime_model$coefficients[2])
+    output$expected_RF_stability <- matrix(stab_values, ncol = 1, dimnames = list(names(stab_values), "Value"))
   }
-  # If no recommendation could be made, create output without the recommendation
-  if(is.na(rec.num.trees)){
-    
-    # if prediction and selection stability could be modeled
-    if(exists('D_est.pv') & exists('D_est.sv')){
-      modelpara.matrix = matrix(c(non.lin.mod.pv$m$getPars(), non.lin.mod.sv$m$getPars()), ncol=2, byrow=T)
-      rownames(modelpara.matrix) = c("Prediction_stability", "Selection_stability")
-    }
-    
-    # if prediction stability could be modeled but selection stability could not be modeled
-    if(exists('D_est.pv') & !exists('D_est.sv')){
-      modelpara.matrix = matrix(non.lin.mod.pv$m$getPars(), ncol=2, byrow=T)
-      rownames(modelpara.matrix) = c("Prediction_stability")
-      warning("Could not produce a nonlinear model to describe the relationship between selection stability and num.trees values\n")
-    }
-    
-    # if prediction stability could not be modeled but selection stability could be modeled
-    if(!exists('D_est.pv') & exists('D_est.sv')){
-      modelpara.matrix = matrix(non.lin.mod.sv$m$getPars(), ncol=2, byrow=T)
-      rownames(modelpara.matrix) = c("Selection_stability")
-      warning("Could not produce a nonlinear model to describe the relationship between prediction stability and num.trees values\n")
-    }
-    
-    # if neither prediction nor selection stability could be modeled
-    if(!exists('D_est.pv') & !exists('D_est.sv')){
-      warning("Could not produce a nonlinear model to describe the relationship between prediction stability and num.trees values as well as between selection stability and num.trees values\n")
-      output = list(ps_definition, summary.result)
-      names(output) = c("prediction_stability_definition", "result.table")
-    }
-    else{
-      colnames(modelpara.matrix) = c("Inflection_point", "Slope")
-      output = list(ps_definition, summary.result, modelpara.matrix)
-      names(output) = c("prediction_stability_definition", "result.table", "model.parameters")
-    }
-    
-    class(output) = "opt_prediction_object"
-    return(output)
-  }
+  class(output) = "opt_prediction_object"
+  return(output)
 }

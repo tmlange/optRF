@@ -80,17 +80,46 @@ create_stability_plot = function(stability_values, num.tree_values, label){
 #'
 #' @return The non linear model as the output of the nlsLM function
 #' @noRd
-non_linear_modelling = function(summary.result, variable, test_seq, visualisation){
-  start_val_p1 = summary.result$num.trees_values[round((nrow(summary.result)/2))]
-  non.lin.mod <- nlsLM(summary.result[,variable] ~ 1 / (1+(p1/num.trees_values)^p2), data=summary.result,
+non_linear_modelling = function(summary_result, variable){
+  start_val_p1 = summary_result$num.trees_values[round((nrow(summary_result)/2))]
+  non.lin.mod <- minpack.lm::nlsLM(summary_result[,variable] ~ 1 / (1+(p1/num.trees_values)^p2), data=summary_result,
                           start=c(p1=start_val_p1, p2=0.5),
-                          control = nls.lm.control(maxiter = 1024))
-
-  if(visualisation){
-    points(TwoPLmodel(test_seq, non.lin.mod$m$getPars()[1], non.lin.mod$m$getPars()[2]) ~ test_seq,
-           type="l", col="navyblue", lwd=3)
-  }
+                          control = minpack.lm::nls.lm.control(maxiter = 1024))
   return(non.lin.mod)
+}
+
+fit_stability_model = function(summary_result, variable, test_seq, visualisation){
+  tryCatch({
+    nl_model = non_linear_modelling(summary_result, variable)
+    estimates = data.frame(num.trees = test_seq,
+                           estimated_stability = TwoPLmodel(test_seq, nl_model$m$getPars()[1], nl_model$m$getPars()[2]))
+    if(visualisation){
+      graphics::lines(estimates$estimated_stability ~ test_seq,
+                      col="navyblue", lwd=3)
+    }
+    list(model = nl_model, estimates = estimates)
+  }, error=function(e) NULL)
+}
+
+find_recommendation = function(estimates, model, rec_thresh, round_rec){
+  # Calculate the increase of stability per increase of trees
+  estimates$diff = c(NA,diff(estimates$estimated_stability)/10)
+  estimates = estimates[-1,]
+  
+  # Finally, make a recommendation
+  new.rec_thresh = rec_thresh
+  trust.rec = FALSE
+  while(trust.rec == FALSE){
+    recommended_num.trees = round(estimates[estimates$diff<new.rec_thresh,]$num.trees[1], round_rec)
+    # Only trust the recommended number of trees, if the recommendation is greater than the inflection point
+    if(recommended_num.trees >= model$m$getPars()[1]){
+      trust.rec = TRUE
+    } else{
+    # If the recommendation is smaller than the inflection point, reduce the recommendation threshold by the factor 10
+      new.rec_thresh = new.rec_thresh*0.1
+    }
+  }
+  return(recommended_num.trees)
 }
 
 #' Internal helper to safely print metrics from a stability table

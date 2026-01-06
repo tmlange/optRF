@@ -45,7 +45,7 @@ plot_stability = function(optRF_object, measure = c("selection","importance","pr
     stop("Invalid input: 'to' must be a single positive number greater than the 'from' value.")
   }
   
-  model_params = optRF_object$model.parameters
+  model_params = optRF_object$model_parameters
   
   # If no model could be produced, give an error message
   if(is.null(model_params) || nrow(model_params) == 0){ 

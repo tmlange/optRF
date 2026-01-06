@@ -30,9 +30,9 @@ estimate_stability = function(optRF_object, with_num.trees = c(1000, 5000, 10000
   }
   with_num.trees = ceiling(with_num.trees)
 
-  model_params = optRF_object$model.parameters
+  model_params = optRF_object$model_parameters
   
-  runtime_model = stats::lm(computation_time ~ num.trees_values, data = optRF_object$result.table)
+  runtime_model = stats::lm(computation_time ~ num.trees_values, data = optRF_object$result_table)
 
   # If no model could be produced, give an error message
   if(is.null(model_params) || nrow(model_params) == 0){ 
