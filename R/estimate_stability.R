@@ -21,7 +21,7 @@
 estimate_stability = function(optRF_object, with_num.trees = c(1000, 5000, 10000, 50000, 100000)){
 
   # Check if the correct object was inserted
-  if(!(inherits(optRF_object, "opt_prediction_object")) && !(inherits(optRF_object, "opt_importance_object"))){
+  if(!inherits(optRF_object, c("opt_prediction_object", "opt_importance_object"))){
     stop("Invalid object was inserted. The inserted object must be the result from the opt_prediction or opt_importance function.")
   }
 

@@ -48,7 +48,7 @@ TwoPLmodel = function(vec, p1, p2){
   1 / (1+(p1/vec)^p2)
 }
 
-TwoPLmodel.inv = function(vec, p1, p2){
+TwoPLmodel_inv = function(vec, p1, p2){
   p1 / (((1/vec)-1)^(1/p2))
 }
 
@@ -104,3 +104,27 @@ non_linear_modelling = function(summary.result, variable, test_seq, visualisatio
     cat(label, ": ", stats[row_name, 1], "\n", sep = "")
   }
 }
+
+#' Validates and returns the correct measure name
+#'
+#' @param measure User-specified name of measure
+#' @param is_pred Boolean whether the object is of type opt_prediction_object or opt_importance_object
+#'
+#' @returns Measure name
+#' @noRd
+get_target_measure = function(measure, is_pred){
+  allowed_measures = if(is_pred){
+    c("prediction", "selection") 
+  } else{
+    c("importance", "selection")
+  } 
+  if(!measure %in% allowed_measures){
+    stop(sprintf("The measure '%s' is not available for this object. Allowed: %s", measure, paste(allowed_measures, collapse = ", ")))
+  }
+  target = switch(measure,
+                  "importance" = "Variable_importance_stability",
+                  "selection" = "Selection_stability",
+                  "prediction" = "Prediction_stability")
+  return(target)
+}
+
