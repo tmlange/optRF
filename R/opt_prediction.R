@@ -28,9 +28,7 @@
 #' @export
 #' @importFrom irr icc kappam.fleiss kripp.alpha kendall
 #' @importFrom stats predict
-#' @importFrom graphics points
 #' @importFrom ranger ranger
-#' @importFrom minpack.lm nlsLM nls.lm.control
 #' @importFrom ordinalForest ordfor
 
 

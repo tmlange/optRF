@@ -26,9 +26,7 @@
 #'
 #' @export
 #' @importFrom irr icc kappam.fleiss kendall
-#' @importFrom graphics points
 #' @importFrom ranger ranger
-#' @importFrom minpack.lm nlsLM nls.lm.control
 #' @importFrom ordinalForest ordfor
 
 
