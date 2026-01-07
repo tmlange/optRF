@@ -60,7 +60,7 @@ estimate_numtrees = function(optRF_object, measure = c("selection","importance",
   opt_numtrees = TwoPLmodel_inv(for_stability, model_params[use_measure,1], model_params[use_measure,2])
   D_est = data.frame(stability = for_stability, 
                      opt_numtrees = ceiling(opt_numtrees),
-                     computation_time = estimate_runtime(opt_numtrees, runtime_model$coefficients[1], runtime_model$coefficients[2]))
+                     computation_time = predict(runtime_model, newdata = data.frame(num.trees_values = opt_numtrees)))
   colnames(D_est)[1] = use_measure
   return(D_est)
 }

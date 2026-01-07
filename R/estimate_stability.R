@@ -47,6 +47,6 @@ estimate_stability = function(optRF_object, with_num.trees = c(1000, 5000, 10000
   names(est_list) = rownames(model_params)
   D_est = data.frame(num.trees = with_num.trees, 
                      est_list, 
-                     computation_time = estimate_runtime(with_num.trees, runtime_model$coefficients[1], runtime_model$coefficients[2]))
+                     computation_time = predict(runtime_model, newdata = data.frame(num.trees_values = with_num.trees)))
   return(D_est)
 }

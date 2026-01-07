@@ -188,7 +188,7 @@ opt_importance = function(y, X, number_repetitions = 10, alpha = 0.05,
       selectionStab = fit_stability_model(summary.result, "selection_stability", test_seq, visualisation == "selection")
       
       # linear modelling of the relationship between run time and num.trees values
-      runtime_model = lm(summary.result$computation_time ~ summary.result$num.trees_values)
+      runtime_model = lm(computation_time ~ num.trees_values, data = summary.result)
     }
   }
   
@@ -226,7 +226,7 @@ opt_importance = function(y, X, number_repetitions = 10, alpha = 0.05,
     stab_values = c()
     if(!is.null(importanceStab)) stab_values["Variable_importance_stability"] = importanceStab$estimates[importanceStab$estimates$num.trees==recommended_num.trees,]$estimated_stability
     if(!is.null(selectionStab)) stab_values["Selection_stability"] = selectionStab$estimates[selectionStab$estimates$num.trees==recommended_num.trees,]$estimated_stability
-    stab_values["Computation_time"] = estimate_runtime(recommended_num.trees, runtime_model$coefficients[1], runtime_model$coefficients[2])
+    stab_values["Computation_time"] = predict(runtime_model, newdata = data.frame(num.trees_values = recommended_num.trees))
     output$expected_RF_stability <- matrix(stab_values, ncol = 1, dimnames = list(names(stab_values), "Value"))
   }
   class(output) = "opt_importance_object"
