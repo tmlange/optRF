@@ -55,8 +55,8 @@ opt_prediction = function(y, X, X_Test=NULL,
   rec_thresh = rec_thresh_helper(rec_thresh)
   
   # Check if y and X have the same number of observations
-  if(!all.equal(nrow(X), length(y))){
-    stop("Length of y does not equal number of rows of X \n")
+  if(nrow(X) != length(y)){
+    stop("Invalid input. Length of 'y' does not equal number of rows of 'X'.")
   }
   
   # Check the response variable
@@ -106,10 +106,7 @@ opt_prediction = function(y, X, X_Test=NULL,
   
   variable.number <- round(ncol(X), -2)
   
-  if(!is.numeric(num.trees_values) | any(num.trees_values < 1)){
-    stop("The num.tree_values need to be a vector of positive numbers.")
-  }
-  num.trees_values = ceiling(num.trees_values)
+  num.trees_values = num.trees_values_helper(num.trees_values)
   
   if(variable.number < 100000){
     test_seq = seq(10, 1000000, 10)

@@ -44,6 +44,13 @@ rec_thresh_helper = function(rec_thresh){
   rec_thresh = rec_thresh[1]
 }
 
+num.trees_values_helper = function(num.trees_values){
+  if(!is.numeric(num.trees_values) || any(num.trees_values < 1)){
+    stop("Invalid input. The parameter 'num.trees_values' needs to be a single positive number or a vector of positive numbers.")
+  }
+  return(ceiling(num.trees_values))
+}
+
 TwoPLmodel = function(vec, p1, p2){
   1 / (1+(p1/vec)^p2)
 }

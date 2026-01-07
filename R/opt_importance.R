@@ -71,8 +71,8 @@ opt_importance = function(y, X, number_repetitions = 10, alpha = 0.05,
   }
   
   # Check if y and X have the same number of observations
-  if(!all.equal(nrow(X), length(y))){
-    stop("Length of y does not equal number of rows of X \n")
+  if(nrow(X) != length(y)){
+    stop("Invalid input. Length of 'y' does not equal number of rows of 'X'.")
   }
   
   
@@ -84,10 +84,7 @@ opt_importance = function(y, X, number_repetitions = 10, alpha = 0.05,
     test_seq = seq(10, round((variable.number*100), -1), 10)
   }
   
-  if(!is.numeric(num.trees_values) | any(num.trees_values < 1)){
-    stop("The num.tree_values need to be a vector of positive numbers")
-  }
-  num.trees_values = ceiling(num.trees_values)
+  num.trees_values = num.trees_values_helper(num.trees_values)
   
   # Check the value for rank_based
   if(rank_based != TRUE & rank_based != FALSE){

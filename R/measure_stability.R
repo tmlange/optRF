@@ -41,18 +41,11 @@ measure_stability = function(y, X, num.trees=500, method=c("prediction","importa
   number_repetitions = number_rep_helper(number_repetitions)
 
   # Check if y and X have the same number of observations
-  if(!all.equal(nrow(X), length(y))){
-    stop("Length of y does not equal number of rows of X \n")
+  if(nrow(X) != length(y)){
+    stop("Invalid input. Length of 'y' does not equal number of rows of 'X'.")
   }
 
-  if(!is.numeric(number_repetitions) | any(number_repetitions < 0)){
-    stop("number_repetitions needs to be a positive number.")
-  }
-
-  if(!is.numeric(num.trees) | any(num.trees < 1)){
-    stop("The num.tree_values need to be a vector of positive numbers.")
-  }
-  num.trees = ceiling(num.trees)
+  num.trees_values = num.trees_values_helper(num.trees_values)
 
   # Run the analysis
 
