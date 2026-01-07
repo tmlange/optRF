@@ -7,7 +7,7 @@
 #' @param alpha The amount of most important variables to be selected based on their estimated variable importance. If < 1, alpha will be considered the relative amount of variables in the data set.
 #' @param importance Variable importance mode, one of "permutation" (default), "impurity" or "impurity_corrected". The "impurity" measure is the Gini index for classification and the variance of the responses for regression.
 #' @param visualisation Can be set to "importance" to draw a plot of the variable importance stability or to "selection" to draw a plot of the selection stability for the numbers of trees to be analysed.
-#' @param recommendation If set to "importance" (default) or "selection", a recommendation will be given based on optimised variable importance or selection stability. If set to be "none", the function will analyse the stability of random forest with the inserted numbers of trees without giving a recommendation.
+#' @param recommendation If set to "importance" (default) or "selection", a recommendation will be given based on optimised variable importance or selection stability.
 #' @param rank_based Should the variable importance stability be defined by the similarity of the estimated variable importance values via the intraclass correlation coefficient (rank_based == FALSE, default) or by the rankings of the variables via Kendall's W (rank_based == TRUE)?
 #' @inheritParams round_rec_helper
 #' @inheritParams number_rep_helper
@@ -37,7 +37,7 @@ opt_importance = function(y, X, number_repetitions = 10, alpha = 0.05,
                           num.trees_values = c(250, 500, 750, 1000, 2000),
                           importance = c("permutation", "impurity", "impurity_corrected"),
                           visualisation = c("none","importance","selection"), 
-                          recommendation = c("importance","selection","none"),
+                          recommendation = c("importance","selection"),
                           rec_thresh = 1e-6, 
                           round_recommendation = c("thousand","hundred","ten","none"), 
                           rank_based = FALSE, response_type = NULL,
@@ -199,7 +199,7 @@ opt_importance = function(y, X, number_repetitions = 10, alpha = 0.05,
     recommended_num.trees = find_recommendation(importanceStab$estimates, importanceStab$model, rec_thresh, round_rec)
   } else if(recommendation == "selection" && !is.null(selectionStab)){
     recommended_num.trees = find_recommendation(selectionStab$estimates, selectionStab$model, rec_thresh, round_rec)
-  } else if(recommendation != "none"){
+  } else{
     warning("A recommendation cannot be given because the relationship between the requested stability and numbers of trees could not be modelled.")
   }
   

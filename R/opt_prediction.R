@@ -6,7 +6,7 @@
 #' @param alpha The number of best individuals to be selected in the test data set based on their predicted response values. If < 1, alpha will be considered to be the relative amount of individuals in the test data set.
 #' @param visualisation Can be set to "prediction" to draw a plot of the prediction stability or "selection" to draw a plot of the selection stability for the numbers of trees to be analysed.
 #' @param select_for What should be selected? In random forest classification, this must be set to a vector containing the values of the desired classes. In random forest regression, this can be set as "high" (default) to select the individuals with the highest predicted value, "low" to select the individuals with the lowest predicted value, or "zero" to select the individuals which predicted value is closest to zero.
-#' @param recommendation If set to "prediction" (default) or "selection", a recommendation will be given based on optimised prediction or selection stability. If set to be "none", the function will analyse the stability of random forest with the inserted numbers of trees without giving a recommendation.
+#' @param recommendation If set to "prediction" (default) or "selection", a recommendation will be given based on optimised prediction or selection stability.
 #' @param Krippendorf If the response is metric, should the prediction stability be calculated as the intraclass correlation coefficient (default) or as Krippendorf's alpha? If Krippendorf's alpha should be computed, the parameter "Krippendorf" must be set to either "interval" or "ratio" depending on the scale of the response variable. 
 #' @param rank_based If the response is metric, should the prediction stability be defined by the similarity of the predicted values via the intraclass correlation coefficient (rank_based == FALSE, default) or by the rankings of the objects via Kendall's W (rank_based == TRUE)?
 #' @inheritParams round_rec_helper
@@ -40,7 +40,7 @@ opt_prediction = function(y, X, X_Test=NULL,
                           num.trees_values = c(250, 500, 750, 1000, 2000), 
                           visualisation = c("none","prediction","selection"), 
                           select_for = c("high", "low", "zero"),
-                          recommendation = c("prediction","selection", "none"),
+                          recommendation = c("prediction","selection"),
                           rec_thresh = 1e-6, round_recommendation = c("thousand","hundred","ten","none"), 
                           response_type = NULL, Krippendorf = NULL, rank_based = FALSE,
                           verbose = TRUE, ...){
@@ -373,7 +373,7 @@ opt_prediction = function(y, X, X_Test=NULL,
     recommended_num.trees = find_recommendation(predictionStab$estimates, predictionStab$model, rec_thresh, round_rec)
   } else if(recommendation == "selection" && !is.null(selectionStab)){
     recommended_num.trees = find_recommendation(selectionStab$estimates, selectionStab$model, rec_thresh, round_rec)
-  } else if(recommendation != "none"){
+  } else{
     warning("A recommendation cannot be given because the relationship between the requested stability and numbers of trees could not be modelled.")
   }
   
