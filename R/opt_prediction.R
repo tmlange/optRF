@@ -28,10 +28,6 @@
 #' @export
 #' @importFrom irr icc kappam.fleiss kripp.alpha kendall
 #' @importFrom stats predict
-#' @importFrom ranger ranger
-#' @importFrom ordinalForest ordfor
-
-
 
 opt_prediction = function(y, X, X_Test=NULL,
                           number_repetitions = 10, alpha = 0.15,
@@ -42,8 +38,6 @@ opt_prediction = function(y, X, X_Test=NULL,
                           rec_thresh = 1e-6, round_recommendation = c("thousand","hundred","ten","none"), 
                           response_type = NULL, Krippendorf = NULL, rank_based = FALSE,
                           verbose = TRUE, ...){
-  
-  rec.num.trees = NA
   
   # Defining to what number the recommendation of number of trees should be rounded to
   round_rec = round_rec_helper(round_recommendation)
@@ -194,7 +188,7 @@ opt_prediction = function(y, X, X_Test=NULL,
         y = factor(y, levels = sort(unique(y)), ordered = TRUE)
         ordfor_data <- data.frame(y = y, X)
         
-        myForest <- ordfor(depvar="y", data=ordfor_data,
+        myForest <- ordinalForest::ordfor(depvar="y", data=ordfor_data,
                         nsets = num.trees_values[i], ...)
         
         if(is.null(X_Test)){
@@ -208,7 +202,7 @@ opt_prediction = function(y, X, X_Test=NULL,
         }
       }
       if(response_type != "ordinal"){
-        myForest <- ranger(x=X,
+        myForest <- ranger::ranger(x=X,
                            y=y,
                            num.trees = num.trees_values[i],
                            verbose = FALSE,

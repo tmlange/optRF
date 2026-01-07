@@ -26,10 +26,6 @@
 #'
 #' @export
 #' @importFrom irr icc kappam.fleiss kendall
-#' @importFrom ranger ranger
-#' @importFrom ordinalForest ordfor
-
-
 
 opt_importance = function(y, X, number_repetitions = 10, alpha = 0.05, 
                           num.trees_values = c(250, 500, 750, 1000, 2000),
@@ -40,8 +36,6 @@ opt_importance = function(y, X, number_repetitions = 10, alpha = 0.05,
                           round_recommendation = c("thousand","hundred","ten","none"), 
                           rank_based = FALSE, response_type = NULL,
                           verbose = TRUE, ...){
-  
-  rec.num.trees = NA
   
   # Defining to what number the recommendation of number of trees should be rounded to
   round_rec = round_rec_helper(round_recommendation)
@@ -120,12 +114,12 @@ opt_importance = function(y, X, number_repetitions = 10, alpha = 0.05,
       if(!is.null(response_type) && response_type == "ordinal"){
         y = factor(y, levels = sort(unique(y)), ordered = TRUE)
         ordfor_data <- data.frame(y = y, X)
-        myForest <- ordfor(depvar="y", data=ordfor_data,
+        myForest <- ordinalForest::ordfor(depvar="y", data=ordfor_data,
                         nsets = num.trees_values[i], ...)
         VI_result = data.frame(myForest$varimp)
       }
       else{
-        myForest <- ranger(x=X,
+        myForest <- ranger::ranger(x=X,
                            y=y,
                            num.trees = num.trees_values[i],
                            importance = importance,
