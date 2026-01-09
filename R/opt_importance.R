@@ -27,7 +27,6 @@
 #' }
 #'
 #' @export
-#' @importFrom irr icc kappam.fleiss kendall
 
 opt_importance = function(y, X, number_repetitions = 10, alpha = 0.05, 
                           num.trees_values = c(250, 500, 750, 1000, 2000),
@@ -50,6 +49,7 @@ opt_importance = function(y, X, number_repetitions = 10, alpha = 0.05,
   num.trees_values = num.trees_values_helper(num.trees_values)
   
   if(!is.logical(rank_based)) stop("'rank_based' must be TRUE or FALSE.")
+  VI_definition = if(rank_based) "Kendalls_W" else "ICC"
   if(nrow(X) != length(y)) stop("Invalid input. Number of rows in 'X' does not match length of 'y'.")
   
   # Check value of y and response_type
@@ -61,77 +61,51 @@ opt_importance = function(y, X, number_repetitions = 10, alpha = 0.05,
   if(!is.numeric(alpha) || length(alpha) != 1 || alpha <= 0 || alpha >= ncol(X)){
     stop("'alpha' must be a single positive number (proportion or count)")
   }
-  selection_size = if(alpha < 1) round(ncol(X)*alpha) else selection_size = round(alpha)
+  selection_size = if(alpha < 1) round(ncol(X)*alpha) else round(alpha)
   
   # Create test sequence
   variable_number = round(ncol(X), -2)
   test_seq = if(variable_number < 100000) seq(10, 1e6, 10) else seq(10, round((variable_number*100), -1), 10)
   
-  
-  # Run the analysis
+  # (I) Run the analysis
   
   summary_result = data.frame()
-  for(i in 1:length(num.trees_values)){
-    
-    D_VI = data.frame(variable.name = names(X))
-    D_selection = data.frame(variable.name = names(X))
-    time.taken = 0
-    for(rep in 1:number_repetitions){
-      
+  importanceStab = NULL
+  selectionStab = NULL
+  
+  for(nt in num.trees_values){
+    vi_mat = matrix(NA, nrow = ncol(X), ncol = number_repetitions)
+    sel_mat = matrix("rejected", nrow = ncol(X), ncol = number_repetitions)
+    time_taken_vec = numeric(number_repetitions)
+    for(rep in seq_len(number_repetitions)){
       # Perform random forest to estimate the importance per variable
       if(verbose){
-        message(paste0("Analysing random forest with ", num.trees_values[i], " trees, progress: ", round((rep/number_repetitions)*100, 0), "%            \r", sep=""), appendLF = F)
+        message(paste0("Analysing random forest with ", nt, " trees, progress: ", round((rep/number_repetitions)*100, 0), "%            \r", sep=""), appendLF = F)
       }
       
       start.time = Sys.time()
       if(response_type == "ordinal"){
-        ordfor_data <- data.frame(y = y, X)
-        myForest <- ordinalForest::ordfor(depvar="y", data=ordfor_data,
-                        nsets = num.trees_values[i], ...)
-        VI_result = data.frame(myForest$varimp)
+        myForest <- ordinalForest::ordfor(depvar="y", data=data.frame(y = y, X), nsets = nt, ...)
+        vi_result = myForest$varimp
       }
       else{
-        myForest <- ranger::ranger(x=X,
-                           y=y,
-                           num.trees = num.trees_values[i],
-                           importance = importance,
-                           verbose = FALSE,
-                           write.forest = TRUE,
-                           ...)
-        VI_result = data.frame(myForest$variable.importance)
+        myForest <- ranger::ranger(x=X, y=y, num.trees = nt, importance = importance, verbose = FALSE, ...)
+        vi_result = myForest$variable.importance
       }
-      time.taken = time.taken + as.numeric(difftime(Sys.time(), start.time, units = "secs"))
-      names(VI_result) = paste0("VI_run", rep)
-      VI_result$variable.name = row.names(VI_result)
-      VI_result = VI_result[order(VI_result$VI, decreasing=T),]
-      selection = VI_result$variable.name[1:selection_size]
-      tmp_D_selection = data.frame(variable.name = names(X))
-      tmp_D_selection$selection = "rejected"
-      tmp_D_selection[tmp_D_selection$variable.name %in% selection,]$selection = "selected"
-      names(tmp_D_selection) = c("variable.name", paste0("Selections_in_run_", rep))
-      D_selection = merge(D_selection, tmp_D_selection, by="variable.name")
+      time_taken_vec[rep] = as.numeric(difftime(Sys.time(), start.time, units = "secs"))
       
-      D_VI = merge(D_VI, VI_result, by="variable.name")
+      # Fill matrices
+      vi_mat[, rep] = vi_result
+      selected_indices = order(vi_result, decreasing = T)[1:selection_size]
+      sel_mat[selected_indices, rep] = "selected"
     }
+    vi_stability = if(rank_based) irr::kendall(vi_mat)$value else irr::icc(vi_mat)$value
+    sel_stability = irr::kappam.fleiss(sel_mat)$value
     
-    # Removing the column with the variable names so that D_VI is a data frame that contains only variable importance estimates
-    D_VI = D_VI[,-1]
-    
-    # Removing the column with the IDs so that D_selection is a data frame that contains only the levels "selected" and "not_selected"
-    D_selection = D_selection[,-1]
-    
-    if(rank_based){
-      variable_importance_stability = kendall(D_VI)$value
-      VI_definition = "Kendalls_W"
-    } else {
-      variable_importance_stability = icc(D_VI)$value
-      VI_definition = "ICC"
-    }
-    
-    tmp_res = data.frame(num.trees_values = num.trees_values[i],
-                         VI_stability = variable_importance_stability,
-                         selection_stability = kappam.fleiss(D_selection)$value,
-                         computation_time = time.taken/number_repetitions)
+    tmp_res = data.frame(num.trees_values = nt,
+                         VI_stability = vi_stability,
+                         selection_stability = sel_stability,
+                         computation_time = mean(time_taken_vec))
     summary_result = rbind(summary_result, tmp_res)
     
     # Optional visualisation
@@ -142,17 +116,19 @@ opt_importance = function(y, X, number_repetitions = 10, alpha = 0.05,
     if(nrow(summary_result) >= 4){
       importanceStab = fit_stability_model(summary_result, "VI_stability", test_seq, visualisation == "importance")
       selectionStab = fit_stability_model(summary_result, "selection_stability", test_seq, visualisation == "selection")
-      runtime_model = stats::lm(computation_time ~ num.trees_values, data = summary_result)
     }
   }
+  runtime_model = stats::lm(computation_time ~ num.trees_values, data = summary_result)
+  
+  # (III) Prepare the output
   
   # After all num.trees_values have been analysed, give a recommendation
   recommended_num.trees = NA
-  # If recommendation should be done with the variable importance stability, optimise numbers of trees based on estimated variable importance stability
-  if(recommendation == "importance" && !is.null(importanceStab)){
-    recommended_num.trees = find_recommendation(importanceStab$estimates, importanceStab$model, rec_thresh, round_rec)
-  } else if(recommendation == "selection" && !is.null(selectionStab)){
-    recommended_num.trees = find_recommendation(selectionStab$estimates, selectionStab$model, rec_thresh, round_rec)
+  rec_Stab = if(recommendation == "importance") importanceStab else selectionStab
+  if(!is.null(rec_Stab)){
+    recommended_num.trees = find_recommendation(rec_Stab$estimates, rec_Stab$model, rec_thresh, round_rec)
+    # If the recommended number of trees is for some reason lower than 500 (default), set it to be 500
+    recommended_num.trees = max(recommended_num.trees, 500)
   } else{
     warning("A recommendation cannot be given because the relationship between the requested stability and numbers of trees could not be modelled.")
   }
@@ -165,14 +141,11 @@ opt_importance = function(y, X, number_repetitions = 10, alpha = 0.05,
   if(!is.null(importanceStab)) model_params[["Variable_importance_stability"]] = importanceStab$model$m$getPars()
   if(!is.null(selectionStab)) model_params[["Selection_stability"]] = selectionStab$model$m$getPars()
   if(length(model_params) > 0){
-    modelpara_matrix = do.call(rbind, model_params)
-    colnames(modelpara_matrix) = c("Inflection_point", "Slope")
-    output$model_parameters = modelpara_matrix
+    output$model_parameters = do.call(rbind, model_params)
+    colnames(output$model_parameters) = c("Inflection_point", "Slope")
   }
   # Add recommendation if available
   if(!is.na(recommended_num.trees)){
-    # If the recommended number of trees is for some reason lower than 500 (default), set it to be 500
-    if(recommended_num.trees < 500) recommended_num.trees = 500
     if(verbose) message("\n Recommended number of trees: ", recommended_num.trees)
     output$recommendation = recommended_num.trees
     output$recommendation_for = recommendation
