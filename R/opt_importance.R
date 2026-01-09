@@ -39,64 +39,38 @@ opt_importance = function(y, X, number_repetitions = 10, alpha = 0.05,
                           rank_based = FALSE, response_type = NULL,
                           verbose = TRUE, ...){
   
-  # Defining to what number the recommendation of number of trees should be rounded to
+  # (I) Input validation
+  
   round_rec = round_rec_helper(round_recommendation)
-  
-  # Check value of importance
   importance = match.arg(importance)
-  
-  # Check value of visualisation
   visualisation = match.arg(visualisation)
-  
-  # Check value of recommendation
   recommendation = match.arg(recommendation)
-  
-  # Check value of number_repetitions
   number_repetitions = number_rep_helper(number_repetitions)
-  
-  # Check value of rec_thresh
   rec_thresh = rec_thresh_helper(rec_thresh)
+  num.trees_values = num.trees_values_helper(num.trees_values)
+  
+  if(!is.logical(rank_based)) stop("'rank_based' must be TRUE or FALSE.")
+  if(nrow(X) != length(y)) stop("Invalid input. Number of rows in 'X' does not match length of 'y'.")
   
   # Check value of y and response_type
   response_result = response_type_helper(response_type, y)
-  y <- response_result$y
-  response_type <- response_result$response_type
+  y = response_result$y
+  response_type = response_result$response_type
   
+  # Determine selection size
   if(!is.numeric(alpha) || length(alpha) != 1 || alpha <= 0 || alpha >= ncol(X)){
     stop("'alpha' must be a single positive number (proportion or count)")
   }
-  if(alpha < 1){
-    selection.size = round(ncol(X)*alpha)
-  }
-  else{
-    selection.size = round(alpha)
-  }
+  selection_size = if(alpha < 1) round(ncol(X)*alpha) else selection_size = round(alpha)
   
-  # Check if y and X have the same number of observations
-  if(nrow(X) != length(y)){
-    stop("Invalid input. Length of 'y' does not equal number of rows of 'X'.")
-  }
-  
-  
-  variable.number <- round(ncol(X), -2)
-  if(variable.number < 100000){
-    test_seq = seq(10, 1000000, 10)
-  }
-  if(variable.number > 100000){
-    test_seq = seq(10, round((variable.number*100), -1), 10)
-  }
-  
-  num.trees_values = num.trees_values_helper(num.trees_values)
-  
-  # Check the value for rank_based
-  if(!is.logical(rank_based)){
-    stop("Invalid value for 'rank_based'; must be TRUE or FALSE")
-  }
+  # Create test sequence
+  variable_number = round(ncol(X), -2)
+  test_seq = if(variable_number < 100000) seq(10, 1e6, 10) else seq(10, round((variable_number*100), -1), 10)
   
   
   # Run the analysis
   
-  summary.result = data.frame()
+  summary_result = data.frame()
   for(i in 1:length(num.trees_values)){
     
     D_VI = data.frame(variable.name = names(X))
@@ -130,7 +104,7 @@ opt_importance = function(y, X, number_repetitions = 10, alpha = 0.05,
       names(VI_result) = paste0("VI_run", rep)
       VI_result$variable.name = row.names(VI_result)
       VI_result = VI_result[order(VI_result$VI, decreasing=T),]
-      selection = VI_result$variable.name[1:selection.size]
+      selection = VI_result$variable.name[1:selection_size]
       tmp_D_selection = data.frame(variable.name = names(X))
       tmp_D_selection$selection = "rejected"
       tmp_D_selection[tmp_D_selection$variable.name %in% selection,]$selection = "selected"
@@ -158,27 +132,17 @@ opt_importance = function(y, X, number_repetitions = 10, alpha = 0.05,
                          VI_stability = variable_importance_stability,
                          selection_stability = kappam.fleiss(D_selection)$value,
                          computation_time = time.taken/number_repetitions)
-    summary.result = rbind(summary.result, tmp_res)
+    summary_result = rbind(summary_result, tmp_res)
     
-    if(visualisation == "importance"){
-      create_stability_plot(summary.result$VI_stability, summary.result$num.trees_values, "variable importance stability")
-    }
+    # Optional visualisation
+    if(visualisation == "importance") create_stability_plot(summary_result$VI_stability, summary_result$num.trees_values, "variable importance stability")
+    if(visualisation == "selection") create_stability_plot(summary_result$selection_stability, summary_result$num.trees_values, "selection stability")
     
-    if(visualisation == "selection"){
-      create_stability_plot(summary.result$selection_stability, summary.result$num.trees_values, "selection stability")
-    }
-    
-    # If there are more than four data points, perform non linear modelling
-    if(nrow(summary.result) >= 4){
-      
-      # non linear modelling of the relationship between variable importance stability and num.trees values
-      importanceStab = fit_stability_model(summary.result, "VI_stability", test_seq, visualisation == "importance")
-      
-      # non linear modelling of the relationship between selection stability and num.trees values
-      selectionStab = fit_stability_model(summary.result, "selection_stability", test_seq, visualisation == "selection")
-      
-      # linear modelling of the relationship between run time and num.trees values
-      runtime_model = lm(computation_time ~ num.trees_values, data = summary.result)
+    # If there are more than four data points, fit stability models
+    if(nrow(summary_result) >= 4){
+      importanceStab = fit_stability_model(summary_result, "VI_stability", test_seq, visualisation == "importance")
+      selectionStab = fit_stability_model(summary_result, "selection_stability", test_seq, visualisation == "selection")
+      runtime_model = stats::lm(computation_time ~ num.trees_values, data = summary_result)
     }
   }
   
@@ -195,7 +159,7 @@ opt_importance = function(y, X, number_repetitions = 10, alpha = 0.05,
   
   # Create output
   # Base output
-  output = list(variable_importance_stability_definition = VI_definition, result_table = summary.result)
+  output = list(variable_importance_stability_definition = VI_definition, result_table = summary_result)
   # Add model parameters if available
   model_params = list()
   if(!is.null(importanceStab)) model_params[["Variable_importance_stability"]] = importanceStab$model$m$getPars()
