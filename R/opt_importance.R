@@ -12,6 +12,8 @@
 #' @inheritParams round_rec_helper
 #' @inheritParams number_rep_helper
 #' @inheritParams rec_thresh_helper
+#' @inheritParams num.trees_values_helper
+#' @inheritParams response_type_helper
 #' @inheritParams opt_shared_parameters
 #'
 #' @return An opt_importance_object containing the recommended number of trees, based on which measure the recommendation was given (importance or selection), a matrix summarising the estimated stability and computation time of a random forest with the recommended numbers of trees, a matrix containing the calculated stability and computation time for the analysed numbers of trees, and the parameters used to model the relationship between stability and numbers of trees.
@@ -55,10 +57,10 @@ opt_importance = function(y, X, number_repetitions = 10, alpha = 0.05,
   # Check value of rec_thresh
   rec_thresh = rec_thresh_helper(rec_thresh)
   
-  # If y is neither numeric nor a factor, return an error message
-  if(!is.numeric(y) & !is.factor(y)){
-    stop("The response variable is neither numeric nor a factor")
-  }
+  # Check value of y and response_type
+  response_result = response_type_helper(response_type, y)
+  y <- response_result$y
+  response_type <- response_result$response_type
   
   if(!is.numeric(alpha) | any(alpha < 0)){
     stop("alpha needs to be a positive number.")
@@ -87,7 +89,7 @@ opt_importance = function(y, X, number_repetitions = 10, alpha = 0.05,
   num.trees_values = num.trees_values_helper(num.trees_values)
   
   # Check the value for rank_based
-  if(rank_based != TRUE & rank_based != FALSE){
+  if(!is.logical(rank_based)){
     stop("Invalid value for 'rank_based'; must be TRUE or FALSE")
   }
   
@@ -108,8 +110,7 @@ opt_importance = function(y, X, number_repetitions = 10, alpha = 0.05,
       }
       
       start.time = Sys.time()
-      if(!is.null(response_type) && response_type == "ordinal"){
-        y = factor(y, levels = sort(unique(y)), ordered = TRUE)
+      if(response_type == "ordinal"){
         ordfor_data <- data.frame(y = y, X)
         myForest <- ordinalForest::ordfor(depvar="y", data=ordfor_data,
                         nsets = num.trees_values[i], ...)

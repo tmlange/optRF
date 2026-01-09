@@ -1,6 +1,4 @@
-#' @param num.trees_values A vector containing the numbers of trees to be analysed. If not specified, 250, 500, 750, 1000, and 2000 trees will be analysed.
 #' @param verbose Show computation status
-#' @param response_type What data type is the response variable? Either "metric", "ordinal", or "categorical" are possible. If not set, the data type will be guessed 
 #' @param ... Any other argument from the ranger or ordfor functions.
 #' @name opt_shared_parameters
 NULL
@@ -44,11 +42,78 @@ rec_thresh_helper = function(rec_thresh){
   rec_thresh = rec_thresh[1]
 }
 
+#' @param num.trees_values A vector containing the numbers of trees to be analysed. If not specified, 250, 500, 750, 1000, and 2000 trees will be analysed.
 num.trees_values_helper = function(num.trees_values){
   if(!is.numeric(num.trees_values) || any(num.trees_values < 1)){
     stop("Invalid input. The parameter 'num.trees_values' needs to be a single positive number or a vector of positive numbers.")
   }
   return(ceiling(num.trees_values))
+}
+
+#' @param response_type What data type is the response variable? Either "metric", "ordinal", or "categorical" are possible. If not set, the data type will be guessed 
+response_type_helper = function(response_type, y, max_ordinal_levels = 10){
+  #Basic validity checks for y
+  if(is.null(y) || length(y) == 0){
+    stop("The response variable 'y' is empty or NULL.")
+  }
+  if(anyNA(y)){
+    stop("Missing values detected in the response variable 'y'. ",
+         "Please remove or impute them before calling this function.")
+  }
+  if(is.character(y) || is.logical(y)){
+    y = factor(y)
+  }
+  if(!is.numeric(y) && !is.factor(y)){
+    stop("The response variable 'y' must be numeric, factor, character, or logical.")
+  }
+  if(length(unique(y)) < 2){
+    stop("The response variable 'y' must contain at least two distinct values.")
+  }
+  
+  # Guess response_type if it is NULL
+  if(is.null(response_type)){
+    if(is.ordered(y)){
+      response_type = "ordinal"
+    } else if(is.factor(y)){
+      response_type = "categorical"
+    } else{
+      unique_vals = unique(y)
+      if(length(unique_vals) <= max_ordinal_levels){
+        response_type = "ordinal"
+      } else{
+        response_type = "metric"
+      }
+    }
+    message("'response_type' has been set to '", response_type,"'.")
+  }
+  response_type <- match.arg(response_type, c("metric", "ordinal", "categorical"))
+  
+  # Check if response_type and y match
+  if(response_type == "metric" && !is.numeric(y)) {
+    stop("response_type = 'metric' requires 'y' to be numeric.")
+  }
+  if(response_type == "categorical" && !is.factor(y)){
+    message("Numeric response converted to factor for categorical analysis.")
+    y = as.factor(y)
+  }
+  if(response_type == "ordinal"){
+    if(is.factor(y) && !is.ordered(y)){
+      stop("response_type = 'ordinal' requires 'y' to be an ordered factor.")
+    }
+    if(is.numeric(y)){
+      sorted_unique_vals = sort(unique(y))
+      if(length(sorted_unique_vals) <= max_ordinal_levels){
+        message("Numeric response converted to ordered factor for ordinal analysis.")
+        y <- factor(y, levels = sorted_unique_vals, ordered = TRUE)
+      } else{
+        stop("Numeric 'y' has too many unique values to be treated as ordinal.")
+      }
+    }
+  }
+  list(
+    y = y,
+    response_type = response_type
+  )
 }
 
 TwoPLmodel = function(vec, p1, p2){
