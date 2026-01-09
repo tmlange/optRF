@@ -67,7 +67,7 @@ opt_importance = function(y, X, number_repetitions = 10, alpha = 0.05,
   variable_number = round(ncol(X), -2)
   test_seq = if(variable_number < 100000) seq(10, 1e6, 10) else seq(10, round((variable_number*100), -1), 10)
   
-  # (I) Run the analysis
+  # (II) Run the analysis
   
   summary_result = data.frame()
   importanceStab = NULL
@@ -85,11 +85,11 @@ opt_importance = function(y, X, number_repetitions = 10, alpha = 0.05,
       
       start.time = Sys.time()
       if(response_type == "ordinal"){
-        myForest <- ordinalForest::ordfor(depvar="y", data=data.frame(y = y, X), nsets = nt, ...)
+        myForest <- ordinalForest::ordfor(depvar = "y", data = data.frame(y = y, X), nsets = nt, ...)
         vi_result = myForest$varimp
       }
       else{
-        myForest <- ranger::ranger(x=X, y=y, num.trees = nt, importance = importance, verbose = FALSE, ...)
+        myForest <- ranger::ranger(x = X, y = y, num.trees = nt, importance = importance, verbose = FALSE, ...)
         vi_result = myForest$variable.importance
       }
       time_taken_vec[rep] = as.numeric(difftime(Sys.time(), start.time, units = "secs"))
