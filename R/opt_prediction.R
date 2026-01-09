@@ -12,6 +12,8 @@
 #' @inheritParams round_rec_helper
 #' @inheritParams number_rep_helper
 #' @inheritParams rec_thresh_helper
+#' @inheritParams num.trees_values_helper
+#' @inheritParams response_type_helper
 #' @inheritParams opt_shared_parameters
 #' @inheritParams prediction_shared_parameters
 #'
@@ -54,41 +56,18 @@ opt_prediction = function(y, X, X_Test=NULL,
   # Check value of rec_thresh
   rec_thresh = rec_thresh_helper(rec_thresh)
   
+  # Check value of y and response_type
+  response_result = response_type_helper(response_type, y)
+  y <- response_result$y
+  response_type <- response_result$response_type
+  
   # Check if y and X have the same number of observations
   if(nrow(X) != length(y)){
     stop("Invalid input. Length of 'y' does not equal number of rows of 'X'.")
   }
   
-  # Check the response variable
-  if(is.numeric(y)){
-    # Validate select_for for numeric y
-    select_for = match.arg(select_for)
-    # Define the response as metric if it has not been set by the user
-    if(is.null(response_type)){
-      response_type = "metric"
-    }
-  }
-  else if(is.character(y) | is.factor(y)){
-    # Validate select_for for categorical y
-    if(missing(select_for) || !all(select_for %in% unique(y))){
-      stop("For a categorical response variable, select_for must be a subset of its classes.")
-    }
-    select_for = unique(select_for)
-    # Ensure select_for does not include all levels of y.
-    if(length(select_for) == length(levels(y))){
-      stop("select_for cannot include all classes of the categorical response variable.")
-    }
-    if(is.character(y)){
-      y = as.factor(y)
-    }
-    # Define the response as categorical if it has not been set by the user
-    if(is.null(response_type)){
-      response_type = "categorical"
-    }
-  }
-  else if(!is.character(y) & !is.numeric(y) & !is.factor(y)){
-    stop("The response variable is neither categorical (character or factor) nor numeric.")
-  }
+  # Check the select_for variable
+  select_for = select_for_helper(y, response_type, select_for, alpha)
   
   # Verify variables of the test data set
   if(is.null(X_Test)){
@@ -115,30 +94,18 @@ opt_prediction = function(y, X, X_Test=NULL,
     test_seq = seq(10, round((variable.number*100), -1), 10)
   }
   
-  # Check alpha
+  # Calculate selection_size
   if(response_type == "metric"){
-    if(!is.numeric(alpha) | any(alpha < 0)){
-      stop("alpha needs to be a positive number.")
-    }
     # Defining the number of individuals to be selected from the data set
     if(alpha < 1){
-      selection.size = round(length(sample.IDs)*alpha)
+      selection_size = round(length(sample.IDs)*alpha)
     }
     else{
-      selection.size = round(alpha)
-    }
-  }
-  if(response_type == "ordinal"){
-    if(!is.numeric(alpha)){
-      stop("For ordinal scaled response variables, alpha must be numeric.")
-    }
-    
-    if(alpha < min(y) | alpha > max(y)){
-      stop("alpha must be in the range of the response variable; min(y) <= alpha <= max(y).")
+      selection_size = round(alpha)
     }
   }
   
-  # Check if the test data set consists of multipe objects
+  # Check if the test data set consists of multiple objects
   if(is.null(X_Test)){
     MOPS.analysis = TRUE
   }
@@ -159,7 +126,7 @@ opt_prediction = function(y, X, X_Test=NULL,
   }
   
   # Check the value for rank_based
-  if(rank_based != TRUE & rank_based != FALSE){
+  if(!is.logical(rank_based)){
     stop("Invalid value for 'rank_based'; must be TRUE or FALSE")
   }
   
@@ -182,7 +149,6 @@ opt_prediction = function(y, X, X_Test=NULL,
       
       start.time = Sys.time()
       if(response_type == "ordinal"){
-        y = factor(y, levels = sort(unique(y)), ordered = TRUE)
         ordfor_data <- data.frame(y = y, X)
         
         myForest <- ordinalForest::ordfor(depvar="y", data=ordfor_data,
@@ -259,7 +225,7 @@ opt_prediction = function(y, X, X_Test=NULL,
             D_pred_test$pred = abs(D_pred_test$pred)
             D_pred_test = D_pred_test[order(D_pred_test$pred, decreasing=F),]
           }
-          selection = D_pred_test$ID[1:selection.size]
+          selection = D_pred_test$ID[1:selection_size]
         }
         if(response_type == "ordinal"){
           if(select_for == "high"){

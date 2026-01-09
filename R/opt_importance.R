@@ -62,8 +62,8 @@ opt_importance = function(y, X, number_repetitions = 10, alpha = 0.05,
   y <- response_result$y
   response_type <- response_result$response_type
   
-  if(!is.numeric(alpha) | any(alpha < 0)){
-    stop("alpha needs to be a positive number.")
+  if(!is.numeric(alpha) || length(alpha) != 1 || alpha <= 0 || alpha >= ncol(X)){
+    stop("'alpha' must be a single positive number (proportion or count)")
   }
   if(alpha < 1){
     selection.size = round(ncol(X)*alpha)

@@ -116,6 +116,41 @@ response_type_helper = function(response_type, y, max_ordinal_levels = 10){
   )
 }
 
+select_for_helper = function(y, response_type, select_for = c("high", "low", "zero"), alpha){
+  if(response_type == "metric"){
+    # Validate select_for for numeric y
+    select_for = match.arg(select_for)
+    if(!is.numeric(alpha) || length(alpha) != 1 || alpha <= 0 || alpha >= length(y)){
+      stop("For metric responses, 'alpha' must be a single positive number (proportion or count).")
+    }
+  }
+  else if(response_type == "categorical"){
+    # Validate select_for for categorical y
+    if(missing(select_for) || !all(select_for %in% levels(y))){
+      stop("For a categorical response variable, 'select_for' must be a subset of its classes.")
+    }
+    select_for = unique(select_for)
+    # Ensure select_for does not include all levels of y.
+    if(length(select_for) == length(levels(y))){
+      stop("'select_for' cannot include all classes of the categorical response variable.")
+    }
+  } else{
+    # Validate select_for for ordinal y
+    if(length(select_for) != 1 || !select_for %in% c("high", "low")){
+      stop("For a ordinal response variable, 'select_for' must be either 'high' or 'low'.")
+    }
+    if(length(alpha) != 1 || !alpha %in% levels(y)){
+      stop("For a ordinal response variable, 'alpha' must be exactly one of the response levels.")
+    }
+    y_levels = levels(y)
+    if((select_for == "high" && alpha == y_levels[1]) ||
+       (select_for == "low" && alpha == y_levels[length(y_levels)])){
+      stop("The chosen 'alpha' and 'select_for' would result in all individuals being selected.")
+    }
+  }
+  return(select_for)
+}
+
 TwoPLmodel = function(vec, p1, p2){
   1 / (1+(p1/vec)^p2)
 }

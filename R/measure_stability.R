@@ -11,6 +11,7 @@
 #' @param verbose Show computation status.
 #' @param ... Any other argument from the ranger function.
 #' @inheritParams number_rep_helper
+#' @inheritParams response_type_helper
 #' @inheritParams prediction_shared_parameters
 #'
 #' @return A data frame summarising the estimated stability for the given num.trees values.
