@@ -7,7 +7,7 @@
 #' @param visualisation Can be set to "prediction" to draw a plot of the prediction stability or "selection" to draw a plot of the selection stability for the numbers of trees to be analysed.
 #' @param select_for What should be selected? In random forest classification, this must be set to a vector containing the values of the desired classes. In random forest regression, this can be set as "high" (default) to select the individuals with the highest predicted value, "low" to select the individuals with the lowest predicted value, or "zero" to select the individuals which predicted value is closest to zero.
 #' @param recommendation If set to "prediction" (default) or "selection", a recommendation will be given based on optimised prediction or selection stability.
-#' @param Krippendorf If the response is metric, should the prediction stability be calculated as the intraclass correlation coefficient (default) or as Krippendorf's alpha? If Krippendorf's alpha should be computed, the parameter "Krippendorf" must be set to either "interval" or "ratio" depending on the scale of the response variable. 
+#' @param Krippendorff If the response is metric, should the prediction stability be calculated as the intraclass correlation coefficient (default) or as Krippendorff's alpha? If Krippendorff's alpha should be computed, the parameter "Krippendorff" must be set to either "interval" or "ratio" depending on the scale of the response variable. 
 #' @param rank_based If the response is metric, should the prediction stability be defined by the similarity of the predicted values via the intraclass correlation coefficient (rank_based == FALSE, default) or by the rankings of the objects via Kendall's W (rank_based == TRUE)?
 #' @inheritParams round_rec_helper
 #' @inheritParams number_rep_helper
@@ -38,33 +38,27 @@ opt_prediction = function(y, X, X_Test=NULL,
                           select_for = c("high", "low", "zero"),
                           recommendation = c("prediction","selection"),
                           rec_thresh = 1e-6, round_recommendation = c("thousand","hundred","ten","none"), 
-                          response_type = NULL, Krippendorf = NULL, rank_based = FALSE,
+                          response_type = NULL, Krippendorff = NULL, rank_based = FALSE,
                           verbose = TRUE, ...){
   
-  # Defining to what number the recommendation of number of trees should be rounded to
+  # (I) Input validation
+  
   round_rec = round_rec_helper(round_recommendation)
-  
-  # Check value of visualisation
   visualisation = match.arg(visualisation)
-  
-  # Check value of recommendation
   recommendation = match.arg(recommendation)
-  
-  # Check value of number_repetitions
   number_repetitions = number_rep_helper(number_repetitions)
-  
-  # Check value of rec_thresh
   rec_thresh = rec_thresh_helper(rec_thresh)
+  num.trees_values = num.trees_values_helper(num.trees_values)
+  
+  if(!is.logical(rank_based)) stop("Invalid value for 'rank_based'; must be TRUE or FALSE")
+  Krippendorff <- if (!is.null(Krippendorff)) match.arg(Krippendorff, c("ratio", "interval")) else NULL
+  if(nrow(X) != length(y)) stop("Invalid input. Number of rows in 'X' does not match length of 'y'.")
   
   # Check value of y and response_type
   response_result = response_type_helper(response_type, y)
   y <- response_result$y
   response_type <- response_result$response_type
   
-  # Check if y and X have the same number of observations
-  if(nrow(X) != length(y)){
-    stop("Invalid input. Length of 'y' does not equal number of rows of 'X'.")
-  }
   
   # Check the select_for variable
   select_for = select_for_helper(y, response_type, select_for, alpha)
@@ -83,16 +77,9 @@ opt_prediction = function(y, X, X_Test=NULL,
     sample.IDs = paste0("ID_", c(1:nrow(X_Test)))
   }
   
-  variable.number <- round(ncol(X), -2)
-  
-  num.trees_values = num.trees_values_helper(num.trees_values)
-  
-  if(variable.number < 100000){
-    test_seq = seq(10, 1000000, 10)
-  }
-  if(variable.number > 100000){
-    test_seq = seq(10, round((variable.number*100), -1), 10)
-  }
+  # Create test sequence
+  variable_number = round(ncol(X), -2)
+  test_seq = if(variable_number < 100000) seq(10, 1e6, 10) else seq(10, round((variable_number*100), -1), 10)
   
   # Calculate selection_size
   if(response_type == "metric"){
@@ -106,33 +93,15 @@ opt_prediction = function(y, X, X_Test=NULL,
   }
   
   # Check if the test data set consists of multiple objects
-  if(is.null(X_Test)){
-    MOPS.analysis = TRUE
-  }
-  else{
-    if(nrow(X_Test) > 1){
-      MOPS.analysis = TRUE
-    }
-    else{
-      MOPS.analysis = FALSE
-    }
-  }
+  MOPS.analysis = is.null(X_Test) || nrow(X_Test) > 1
+
+  # (II) Run the analysis
   
-  # Check the value for Krippendorf
-  if(!is.null(Krippendorf)){
-    if(!(Krippendorf %in% c("ratio", "interval"))){
-      stop("Invalid value for 'Krippendorf'; must be 'ratio', 'interval', or NULL")
-    }
-  }
+  summary_result = data.frame()
+  predictionStab = NULL
+  selectionStab = NULL
+  avgDiffVec = c()
   
-  # Check the value for rank_based
-  if(!is.logical(rank_based)){
-    stop("Invalid value for 'rank_based'; must be TRUE or FALSE")
-  }
-  
-  # Run the analysis
-  
-  summary.result = data.frame()
   for(i in 1:length(num.trees_values)){
     D_preds = data.frame(ID= sample.IDs)
     D_selection = data.frame(ID= sample.IDs)
@@ -149,9 +118,7 @@ opt_prediction = function(y, X, X_Test=NULL,
       
       start.time = Sys.time()
       if(response_type == "ordinal"){
-        ordfor_data <- data.frame(y = y, X)
-        
-        myForest <- ordinalForest::ordfor(depvar="y", data=ordfor_data,
+        myForest <- ordinalForest::ordfor(depvar = "y", data = data.frame(y = y, X),
                         nsets = num.trees_values[i], ...)
         
         if(is.null(X_Test)){
@@ -165,33 +132,16 @@ opt_prediction = function(y, X, X_Test=NULL,
         }
       }
       if(response_type != "ordinal"){
-        myForest <- ranger::ranger(x=X,
-                           y=y,
+        myForest <- ranger::ranger(x = X,
+                           y = y,
                            num.trees = num.trees_values[i],
                            verbose = FALSE,
-                           write.forest = TRUE,
-                           keep.inbag = TRUE)
+                           keep.inbag = TRUE, ...)
+        runif(1, 0, .Machine$integer.max) #Uncomment to reproduce original results
         if(is.null(X_Test)){
-          all_predictions = predict(myForest, data = X, predict.all = TRUE)$predictions
-          if(is.factor(y)){
-            predictions = factor(character(length(y)), levels = levels(y))
-          }
-          else{
-            predictions = numeric(length(y))
-          }
-          for(observation_number in 1:length(y)){
-            inbag_counts = sapply(myForest[["inbag.counts"]], `[`, observation_number)
-            keep.predictions = all_predictions[observation_number, inbag_counts == 0]
-            if(is.factor(y)){
-              predictions[observation_number] = levels(y)[which.max(table(keep.predictions))]
-            }
-            else{
-              predictions[observation_number] = mean(keep.predictions)
-            }
-          }
-        }
-        else{
-          predictions <- predict(myForest, data=X_Test)$predictions
+         predictions = myForest$predictions
+        } else{
+         predictions <- predict(myForest, data=X_Test)$predictions
         }
         
         if(MOPS.analysis == FALSE){
@@ -246,7 +196,7 @@ opt_prediction = function(y, X, X_Test=NULL,
       }
     }
     
-    # Create the data frame summary.result for multiple objects
+    # Create the data frame summary_result for multiple objects
     if(MOPS.analysis == TRUE){
       # Removing the column with the IDs so that D_preds is a data frame that contains only the predictions
       D_preds = D_preds[,-1]
@@ -256,26 +206,26 @@ opt_prediction = function(y, X, X_Test=NULL,
       
       # Calculating the prediction stability
       if(response_type == "metric"){
-        if(is.null(Krippendorf) & rank_based == FALSE){
+        if(is.null(Krippendorff) & rank_based == FALSE){
           pred_stability = icc(D_preds)$value
           ps_definition = "ICC"
         }
-        if(is.null(Krippendorf) & rank_based == TRUE){
+        if(is.null(Krippendorff) & rank_based == TRUE){
           pred_stability = kendall(D_preds)$value
           ps_definition = "Kendalls_W"
         }
-        if(!is.null(Krippendorf)){
+        if(!is.null(Krippendorff)){
           D_preds = as.matrix(D_preds)
           D_preds = t(D_preds)
-          pred_stability = kripp.alpha(D_preds, method=Krippendorf)$value
-          ps_definition = "Krippendorfs_alpha"
+          pred_stability = kripp.alpha(D_preds, method=Krippendorff)$value
+          ps_definition = "Krippendorffs_alpha"
         }
       }
       if(response_type == "ordinal"){
         D_preds = as.matrix(D_preds)
         D_preds = t(D_preds)
         pred_stability = kripp.alpha(D_preds, method="ordinal")$value
-        ps_definition = "Krippendorfs_alpha"
+        ps_definition = "Krippendorffs_alpha"
       }
       if(response_type == "categorical"){
         pred_stability = kappam.fleiss(D_preds)$value
@@ -285,10 +235,10 @@ opt_prediction = function(y, X, X_Test=NULL,
                            pred_stability = pred_stability,
                            selection_stability = kappam.fleiss(D_selection)$value,
                            computation_time = time.taken/number_repetitions)
-      summary.result = rbind(summary.result, tmp_res)
+      summary_result = rbind(summary_result, tmp_res)
     }
     
-    # Create the data frame summary.result for a single objects
+    # Create the data frame summary_result for a single objects
     if(MOPS.analysis == FALSE){
       SOPS_value = 1/(1+(sd(prediction_vector)/mean(prediction_vector)))
       ps_definition = "Single_Object_Prediction_Stability"
@@ -296,58 +246,45 @@ opt_prediction = function(y, X, X_Test=NULL,
       tmp_res = data.frame(num.trees_values = num.trees_values[i],
                            pred_stability = SOPS_value,
                            computation_time = time.taken/number_repetitions)
-      summary.result = rbind(summary.result, tmp_res)
+      summary_result = rbind(summary_result, tmp_res)
     }
     
-    if(visualisation == "prediction"){
-      create_stability_plot(summary.result$pred_stability, summary.result$num.trees_values, "prediction stability")
-    }
+    # Optional visualisation
+    if(visualisation == "prediction") create_stability_plot(summary_result$pred_stability, summary_result$num.trees_values, "prediction stability")
+    if(visualisation == "selection") create_stability_plot(summary_result$selection_stability, summary_result$num.trees_values, "selection stability")
     
-    if(visualisation == "selection"){
-      create_stability_plot(summary.result$selection_stability, summary.result$num.trees_values, "selection stability")
-    }
-    
-    # If there are more than four data points, model the relationship(s)
-    if(nrow(summary.result) >= 4){
-      
-      # non linear modelling of the relationship between prediction stability and num.trees values
-      predictionStab = fit_stability_model(summary.result, "pred_stability", test_seq, visualisation == "prediction")
-      
-      # non linear modelling of the relationship between selection stability and num.trees values
-      selectionStab = fit_stability_model(summary.result, "selection_stability", test_seq, visualisation == "selection")
-      
-      # linear modelling of the relationship between run time and num.trees values
-      runtime_model = lm(computation_time ~ num.trees_values, data = summary.result)
+    # If there are more than four data points, fit stability models
+    if(nrow(summary_result) >= 4){
+      predictionStab = fit_stability_model(summary_result, "pred_stability", test_seq, visualisation == "prediction")
+      selectionStab = fit_stability_model(summary_result, "selection_stability", test_seq, visualisation == "selection")
     }
   }
-  
+  runtime_model = stats::lm(computation_time ~ num.trees_values, data = summary_result)
+  print(avgDiffVec)
   # After all num.trees_values have been analysed, give a recommendation
   recommended_num.trees = NA
-  # If recommendation should be done with the prediction stability, optimise numbers of trees based on estimated prediction stability
-  if(recommendation == "prediction" && !is.null(predictionStab)){
-    recommended_num.trees = find_recommendation(predictionStab$estimates, predictionStab$model, rec_thresh, round_rec)
-  } else if(recommendation == "selection" && !is.null(selectionStab)){
-    recommended_num.trees = find_recommendation(selectionStab$estimates, selectionStab$model, rec_thresh, round_rec)
+  rec_Stab = if(recommendation == "prediction") predictionStab else selectionStab
+  if(!is.null(rec_Stab)){
+    recommended_num.trees = find_recommendation(rec_Stab$estimates, rec_Stab$model, rec_thresh, round_rec)
+    # If the recommended number of trees is for some reason lower than 500 (default), set it to be 500
+    if(recommended_num.trees < 500) recommended_num.trees = 500
   } else{
     warning("A recommendation cannot be given because the relationship between the requested stability and numbers of trees could not be modelled.")
   }
   
   # Create output
   # Base output
-  output = list(prediction_stability_definition = ps_definition, result_table = summary.result)
+  output = list(prediction_stability_definition = ps_definition, result_table = summary_result)
   # Add model parameters if available
   model_params = list()
   if(!is.null(predictionStab)) model_params[["Prediction_stability"]] = predictionStab$model$m$getPars()
   if(!is.null(selectionStab)) model_params[["Selection_stability"]] = selectionStab$model$m$getPars()
   if(length(model_params) > 0){
-    modelpara_matrix = do.call(rbind, model_params)
-    colnames(modelpara_matrix) = c("Inflection_point", "Slope")
-    output$model_parameters = modelpara_matrix
+    output$model_parameters = do.call(rbind, model_params)
+    colnames(output$model_parameters) = c("Inflection_point", "Slope")
   }
   # Add recommendation if available
   if(!is.na(recommended_num.trees)){
-    # If the recommended number of trees is for some reason lower than 500 (default), set it to be 500
-    if(recommended_num.trees < 500) recommended_num.trees = 500
     if(verbose) message("\n Recommended number of trees: ", recommended_num.trees)
     output$recommendation = recommended_num.trees
     output$recommendation_for = recommendation
