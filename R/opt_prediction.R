@@ -100,16 +100,15 @@ opt_prediction = function(y, X, X_Test=NULL,
   summary_result = data.frame()
   predictionStab = NULL
   selectionStab = NULL
-  avgDiffVec = c()
   
   for(i in 1:length(num.trees_values)){
-    D_preds = data.frame(ID= sample.IDs)
-    D_selection = data.frame(ID= sample.IDs)
-    time.taken = 0
-    
-    if(MOPS.analysis == FALSE){
-      prediction_vector = vector()
+    if(MOPS.analysis){
+      pred_mat = matrix(NA, nrow = nrow(X), ncol = number_repetitions)
+      sel_mat = matrix("rejected", nrow = nrow(X), ncol = number_repetitions)
+    } else{
+      pred_vector = vector("list", length = number_repetitions)
     }
+    time_taken_vec = numeric(number_repetitions)
     for(rep in 1:number_repetitions){
       
       if(verbose){
@@ -126,115 +125,72 @@ opt_prediction = function(y, X, X_Test=NULL,
         } else {
           predictions <- predict(myForest, newdata = X_Test)$ypred
         }
-        
-        if(MOPS.analysis == FALSE){
-          prediction_vector = c(prediction_vector, predictions)
-        }
-      }
-      if(response_type != "ordinal"){
+      } else{
         myForest <- ranger::ranger(x = X,
                            y = y,
                            num.trees = num.trees_values[i],
-                           verbose = FALSE,
-                           keep.inbag = TRUE, ...)
+                           verbose = FALSE, ...)
         runif(1, 0, .Machine$integer.max) #Uncomment to reproduce original results
         if(is.null(X_Test)){
          predictions = myForest$predictions
         } else{
          predictions <- predict(myForest, data=X_Test)$predictions
         }
-        
-        if(MOPS.analysis == FALSE){
-          prediction_vector = c(prediction_vector, predictions)
-        }
       }
-      time.taken = time.taken + as.numeric(difftime(Sys.time(), start.time, units = "secs"))
+      time_taken_vec[rep] = as.numeric(difftime(Sys.time(), start.time, units = "secs"))
       
       # Analysis of prediction stability and selection stability for multiple test objects 
       if(MOPS.analysis == TRUE){
+        pred_mat[, rep] = predictions
         
-        # Creating the data frame to estimate the prediction stability (D_preds)
-        tmp_D_preds = data.frame(predictions)
-        names(tmp_D_preds) = paste0("Predictions_run_", rep)
-        D_preds = cbind(D_preds, tmp_D_preds)
-        
-        # Creating the data frame to estimate the selection stability (D_selection)
-        D_pred_test = data.frame(ID = sample.IDs, pred = predictions)
-        
+        # Selection logic
         if(response_type == "metric"){
-          # Perform the selection
-          if(select_for == "high"){
-            D_pred_test = D_pred_test[order(D_pred_test$pred, decreasing=T),]
-          }
-          else if(select_for == "low"){
-            D_pred_test = D_pred_test[order(D_pred_test$pred, decreasing=F),]
-          }
-          else{
-            # If it is neither "low" nor "high", it must be "zero"
-            # To analyse which predictions are closest to zero, calculate absolute values
-            D_pred_test$pred = abs(D_pred_test$pred)
-            D_pred_test = D_pred_test[order(D_pred_test$pred, decreasing=F),]
-          }
-          selection = D_pred_test$ID[1:selection_size]
+          ranks = if(select_for == "high") rank(-predictions, ties.method = "first") else
+            if(select_for == "low") rank(predictions, ties.method = "first") else
+              rank(abs(predictions), ties.method = "first")
+          selected_idx = which(ranks <= selection_size)
+        } else if(response_type == "ordinal"){
+          selected_idx = if(select_for == "high") which(predictions >= alpha) else which(predictions <= alpha)
+        } else{ # categorical
+          selected_idx = which(predictions %in% select_for)
         }
-        if(response_type == "ordinal"){
-          if(select_for == "high"){
-            selection = D_pred_test[D_pred_test$pred >= alpha,]$ID
-          }
-          else{
-            selection = D_pred_test[D_pred_test$pred <= alpha,]$ID
-          }
-        }
-        if(response_type == "categorical"){
-          selection = D_pred_test[D_pred_test$pred %in% select_for,]$ID
-        }
-        tmp_D_selection = data.frame(ID = sample.IDs)
-        tmp_D_selection$selection = "rejected"
-        tmp_D_selection[tmp_D_selection$ID %in% selection,]$selection = "selected"
-        names(tmp_D_selection) = c("ID", paste0("Selections_in_run_", rep))
-        D_selection = merge(D_selection, tmp_D_selection, by="ID")
+        sel_mat[selected_idx, rep] = "selected"
+      } else{
+        pred_vector[[rep]] = predictions
       }
     }
     
     # Create the data frame summary_result for multiple objects
     if(MOPS.analysis == TRUE){
-      # Removing the column with the IDs so that D_preds is a data frame that contains only the predictions
-      D_preds = D_preds[,-1]
-      
-      # Removing the column with the IDs so that D_selection is a data frame that contains only the levels "selected" and "not_selected"
-      D_selection = D_selection[,-1]
-      
       # Calculating the prediction stability
       if(response_type == "metric"){
         if(is.null(Krippendorff) & rank_based == FALSE){
-          pred_stability = icc(D_preds)$value
+          pred_stability = icc(pred_mat)$value
           ps_definition = "ICC"
         }
         if(is.null(Krippendorff) & rank_based == TRUE){
-          pred_stability = kendall(D_preds)$value
+          pred_stability = kendall(pred_mat)$value
           ps_definition = "Kendalls_W"
         }
         if(!is.null(Krippendorff)){
-          D_preds = as.matrix(D_preds)
-          D_preds = t(D_preds)
-          pred_stability = kripp.alpha(D_preds, method=Krippendorff)$value
+          pred_mat = t(pred_mat)
+          pred_stability = kripp.alpha(pred_mat, method=Krippendorff)$value
           ps_definition = "Krippendorffs_alpha"
         }
       }
       if(response_type == "ordinal"){
-        D_preds = as.matrix(D_preds)
-        D_preds = t(D_preds)
-        pred_stability = kripp.alpha(D_preds, method="ordinal")$value
+        pred_mat = t(pred_mat)
+        pred_stability = kripp.alpha(pred_mat, method="ordinal")$value
         ps_definition = "Krippendorffs_alpha"
       }
       if(response_type == "categorical"){
-        pred_stability = kappam.fleiss(D_preds)$value
+        pred_stability = kappam.fleiss(pred_mat)$value
         ps_definition = "Fleiss_Kappa"
       }
       tmp_res = data.frame(num.trees_values = num.trees_values[i],
                            pred_stability = pred_stability,
-                           selection_stability = kappam.fleiss(D_selection)$value,
-                           computation_time = time.taken/number_repetitions)
+                           selection_stability = kappam.fleiss(sel_mat)$value,
+                           computation_time = mean(time_taken_vec))
       summary_result = rbind(summary_result, tmp_res)
     }
     
@@ -260,7 +216,9 @@ opt_prediction = function(y, X, X_Test=NULL,
     }
   }
   runtime_model = stats::lm(computation_time ~ num.trees_values, data = summary_result)
-  print(avgDiffVec)
+  
+  # (III) Prepare the output
+  
   # After all num.trees_values have been analysed, give a recommendation
   recommended_num.trees = NA
   rec_Stab = if(recommendation == "prediction") predictionStab else selectionStab
