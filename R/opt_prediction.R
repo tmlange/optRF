@@ -196,7 +196,7 @@ opt_prediction = function(y, X, X_Test=NULL,
     
     # Create the data frame summary_result for a single objects
     if(MOPS.analysis == FALSE){
-      SOPS_value = 1/(1+(sd(prediction_vector)/mean(prediction_vector)))
+      SOPS_value = 1/(1+(sd(prediction_vector)/IQR(prediction_vector)))
       ps_definition = "Single_Object_Prediction_Stability"
       
       tmp_res = data.frame(num.trees_values = num.trees_values[i],
