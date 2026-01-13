@@ -78,7 +78,7 @@ response_type_helper = function(response_type, y, max_ordinal_levels = 10){
       response_type = "categorical"
     } else{
       unique_vals = unique(y)
-      if(length(unique_vals) <= max_ordinal_levels){
+      if(length(unique_vals) <= max_ordinal_levels && all(y %% 1 == 0)){
         response_type = "ordinal"
       } else{
         response_type = "metric"
@@ -104,6 +104,7 @@ response_type_helper = function(response_type, y, max_ordinal_levels = 10){
       sorted_unique_vals = sort(unique(y))
       if(length(sorted_unique_vals) <= max_ordinal_levels){
         message("Numeric response converted to ordered factor for ordinal analysis.")
+        message("Please use response_type = 'metric' if you intended to interpret them as numeric.")
         y <- factor(y, levels = sorted_unique_vals, ordered = TRUE)
       } else{
         stop("Numeric 'y' has too many unique values to be treated as ordinal.")
