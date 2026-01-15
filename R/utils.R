@@ -261,18 +261,141 @@ get_target_measure = function(measure, is_pred){
   return(target)
 }
 
+.run_rf = function(y, X, X_Test, method,num.trees_value, response_type, importance, ...){
+  if(response_type == "ordinal"){
+    myForest <- ordinalForest::ordfor(depvar = "y", data = data.frame(y = y, X),
+                                      nsets = num.trees_value, ...)
+    if(method == "importance"){
+      return(myForest$varimp)
+    } else{
+      if(is.null(X_Test)){
+        return(myForest$ypred_oob)
+      } else {
+        return(predict(myForest, newdata = X_Test)$ypred)
+      }
+    }
+  } else{
+    myForest <- ranger::ranger(x = X,
+                               y = y,
+                               num.trees = num.trees_value,
+                               importance = importance,
+                               verbose = FALSE, ...)
+    if(method == "importance"){
+      return(myForest$variable.importance)
+    } else{
+      runif(1, 0, .Machine$integer.max) #Uncomment to reproduce original results
+      if(is.null(X_Test)){
+        return(myForest$predictions)
+      } else{
+        return(predict(myForest, data=X_Test)$predictions)
+      }
+    }
+  }
+}
+
 .run_rf_engine = function(y, X, X_Test = NULL, method = c("prediction", "importance"),
                          number_repetitions,
                          num.trees_values,
                          visualisation = c("primary","selection"),
-                         recommendation = c("prediction","selection"),
+                         recommendation = c("primary","selection"),
                          rec_thresh = 1e-6, round_recommendation = c("thousand","hundred","ten","none"),
                          stability_metric, verbose = TRUE, ...
                          ){
+  
+  # (I) Input validation
+  
   round_rec = round_rec_helper(round_recommendation)
-  visualisation = match.arg(visualisation)
-  recommendation = match.arg(recommendation)
   number_repetitions = number_rep_helper(number_repetitions)
   rec_thresh = rec_thresh_helper(rec_thresh)
   num.trees_values = num.trees_values_helper(num.trees_values)
+  if(nrow(X) != length(y)) stop("Invalid input. Number of rows in 'X' does not match length of 'y'.")
+  
+  # Check value of y and response_type
+  response_result = response_type_helper(response_type, y)
+  y <- response_result$y
+  response_type <- response_result$response_type
+  # Create test sequence
+  variable_number = round(ncol(X), -2)
+  test_seq = if(variable_number < 100000) seq(10, 1e6, 10) else seq(10, round((variable_number*100), -1), 10)
+  
+  # (II) Run the analysis
+  summary_result = data.frame()
+  predictionStab = NULL
+  selectionStab = NULL
+  
+  for(i in 1:length(num.trees_values)){
+    pred_mat = matrix(NA, nrow = length(sample_IDs), ncol = number_repetitions)
+    sel_mat = matrix("rejected", nrow = length(sample_IDs), ncol = number_repetitions)
+    time_taken_vec = numeric(number_repetitions)
+    for(rep in 1:number_repetitions){
+      
+      if(verbose){
+        message(paste0("Analysing random forest with ", num.trees_values[i], " trees, progress: ", round((rep/number_repetitions)*100, 0), "%            \r", sep=""), appendLF = F)
+      }
+      
+      start.time = Sys.time()
+      if(response_type == "ordinal"){
+        myForest <- ordinalForest::ordfor(depvar = "y", data = data.frame(y = y, X),
+                                          nsets = num.trees_values[i], ...)
+        
+        if(is.null(X_Test)){
+          predictions <- myForest$ypred_oob
+        } else {
+          predictions <- predict(myForest, newdata = X_Test)$ypred
+        }
+      } else{
+        myForest <- ranger::ranger(x = X,
+                                   y = y,
+                                   num.trees = num.trees_values[i],
+                                   verbose = FALSE, ...)
+        runif(1, 0, .Machine$integer.max) #Uncomment to reproduce original results
+        if(is.null(X_Test)){
+          predictions = myForest$predictions
+        } else{
+          predictions <- predict(myForest, data=X_Test)$predictions
+        }
+      }
+      time_taken_vec[rep] = as.numeric(difftime(Sys.time(), start.time, units = "secs"))
+      pred_mat[, rep] = predictions
+      
+      # Selection logic
+      if(response_type == "metric"){
+        ranks = if(select_for == "high") rank(-predictions, ties.method = "first") else
+          if(select_for == "low") rank(predictions, ties.method = "first") else
+            rank(abs(predictions), ties.method = "first")
+        selected_idx = which(ranks <= selection_size)
+      } else if(response_type == "ordinal"){
+        selected_idx = if(select_for == "high") which(predictions >= alpha) else which(predictions <= alpha)
+      } else{ # categorical
+        selected_idx = which(predictions %in% select_for)
+      }
+      sel_mat[selected_idx, rep] = "selected"
+    }
+    # Calculate the stability values
+    if(stability_metric == "icc"){
+      pred_stability = irr::icc(pred_mat)$value
+      ps_definition = "ICC"
+    } else if(stability_metric == "kendall"){
+      pred_stability = irr::kendall(pred_mat)$value
+      ps_definition = "Kendalls_W"
+    } else if(stability_metric == "fleiss_kappa"){
+      pred_stability = irr::kappam.fleiss(pred_mat)$value
+      ps_definition = "Fleiss_Kappa"
+    } else{
+      pred_mat = t(pred_mat)
+      if(response_type == "metric"){
+        pred_stability = irr::kripp.alpha(pred_mat, method="interval")$value
+      } else if(response_type == "ordinal"){
+        pred_stability = irr::kripp.alpha(pred_mat, method="ordinal")$value
+      } else{
+        pred_stability = irr::kripp.alpha(pred_mat, method="nominal")$value
+      }
+      ps_definition = "Krippendorffs_alpha"
+    }
+    tmp_res = data.frame(num.trees_values = num.trees_values[i],
+                         pred_stability = pred_stability,
+                         selection_stability = kappam.fleiss(sel_mat)$value,
+                         computation_time = mean(time_taken_vec))
+    summary_result = rbind(summary_result, tmp_res)
+  }
 }

@@ -84,14 +84,7 @@ opt_importance = function(y, X, number_repetitions = 10, alpha = 0.05,
       }
       
       start.time = Sys.time()
-      if(response_type == "ordinal"){
-        myForest <- ordinalForest::ordfor(depvar = "y", data = data.frame(y = y, X), nsets = nt, ...)
-        vi_result = myForest$varimp
-      }
-      else{
-        myForest <- ranger::ranger(x = X, y = y, num.trees = nt, importance = importance, verbose = FALSE, ...)
-        vi_result = myForest$variable.importance
-      }
+      vi_result = .run_rf(y, X, X_Test = NULL, method = "importance",num.trees_value = nt, response_type, importance, ...)
       time_taken_vec[rep] = as.numeric(difftime(Sys.time(), start.time, units = "secs"))
       
       # Fill matrices

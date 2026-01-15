@@ -127,27 +127,7 @@ opt_prediction = function(y, X, X_Test=NULL,
       }
       
       start.time = Sys.time()
-      if(response_type == "ordinal"){
-        myForest <- ordinalForest::ordfor(depvar = "y", data = data.frame(y = y, X),
-                        nsets = num.trees_values[i], ...)
-        
-        if(is.null(X_Test)){
-          predictions <- myForest$ypred_oob
-        } else {
-          predictions <- predict(myForest, newdata = X_Test)$ypred
-        }
-      } else{
-        myForest <- ranger::ranger(x = X,
-                           y = y,
-                           num.trees = num.trees_values[i],
-                           verbose = FALSE, ...)
-        runif(1, 0, .Machine$integer.max) #Uncomment to reproduce original results
-        if(is.null(X_Test)){
-         predictions = myForest$predictions
-        } else{
-         predictions <- predict(myForest, data=X_Test)$predictions
-        }
-      }
+      predictions = .run_rf(y, X, X_Test, method = "prediction",num.trees_value = num.trees_values[i], response_type, importance = "none", ...)
       time_taken_vec[rep] = as.numeric(difftime(Sys.time(), start.time, units = "secs"))
       pred_mat[, rep] = predictions
       
