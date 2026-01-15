@@ -293,6 +293,38 @@ get_target_measure = function(measure, is_pred){
   }
 }
 
+.run_rf_repeated = function(y, X, X_Test, method, rowCount, num.trees_value, response_type, importance, number_repetitions, verbose, ...){
+  res_mat = matrix(NA, nrow = rowCount, ncol = number_repetitions)
+  time_taken_vec = numeric(number_repetitions)
+  for(rep in 1:number_repetitions){
+    if(verbose){
+      message(paste0("Analysing random forest with ", num.trees_value, " trees, progress: ", round((rep/number_repetitions)*100, 0), "%            \r", sep=""), appendLF = F)
+    }
+    start.time = Sys.time()
+    resultVec = .run_rf(y, X, X_Test, method,num.trees_value, response_type, importance, ...)
+    time_taken_vec[rep] = as.numeric(difftime(Sys.time(), start.time, units = "secs"))
+    res_mat[, rep] = resultVec
+  }
+  return(list(result_mat = res_mat, timeTaken = mean(time_taken_vec)))
+}
+
+.compute_selection_mat = function(result_mat, response_type, select_for, selection_size, alpha){
+  if(response_type == "metric"){
+    ranks_mat = if(select_for == "high") apply(-result_mat, 2, rank, ties.method = "first") else
+      if(select_for == "low") apply(result_mat, 2, rank, ties.method = "first") else
+        apply(abs(result_mat), 2, rank, ties.method = "first")
+    return(ifelse(ranks_mat <= selection_size, "selected", "rejected"))
+  } else if(response_type == "ordinal"){
+    if(select_for == "high"){
+      return(ifelse(result_mat >= alpha, "selected", "rejected"))
+    } else{
+      return(ifelse(result_mat <= alpha, "selected", "rejected"))
+    }
+  } else{ # categorical
+    return(ifelse(matrix(result_mat %in% select_for, nrow = nrow(result_mat)), "selected", "rejected"))
+  }
+}
+
 .run_rf_engine = function(y, X, X_Test = NULL, method = c("prediction", "importance"),
                          number_repetitions,
                          num.trees_values,

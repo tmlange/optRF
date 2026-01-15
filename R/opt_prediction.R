@@ -116,34 +116,11 @@ opt_prediction = function(y, X, X_Test=NULL,
   predictionStab = NULL
   selectionStab = NULL
   
-  for(i in 1:length(num.trees_values)){
-    pred_mat = matrix(NA, nrow = length(sample_IDs), ncol = number_repetitions)
-    sel_mat = matrix("rejected", nrow = length(sample_IDs), ncol = number_repetitions)
-    time_taken_vec = numeric(number_repetitions)
-    for(rep in 1:number_repetitions){
-      
-      if(verbose){
-        message(paste0("Analysing random forest with ", num.trees_values[i], " trees, progress: ", round((rep/number_repetitions)*100, 0), "%            \r", sep=""), appendLF = F)
-      }
-      
-      start.time = Sys.time()
-      predictions = .run_rf(y, X, X_Test, method = "prediction",num.trees_value = num.trees_values[i], response_type, importance = "none", ...)
-      time_taken_vec[rep] = as.numeric(difftime(Sys.time(), start.time, units = "secs"))
-      pred_mat[, rep] = predictions
-      
-      # Selection logic
-      if(response_type == "metric"){
-        ranks = if(select_for == "high") rank(-predictions, ties.method = "first") else
-          if(select_for == "low") rank(predictions, ties.method = "first") else
-            rank(abs(predictions), ties.method = "first")
-        selected_idx = which(ranks <= selection_size)
-      } else if(response_type == "ordinal"){
-        selected_idx = if(select_for == "high") which(predictions >= alpha) else which(predictions <= alpha)
-      } else{ # categorical
-        selected_idx = which(predictions %in% select_for)
-      }
-      sel_mat[selected_idx, rep] = "selected"
-    }
+  for(num.trees_value in num.trees_values){
+    repeatedResult = .run_rf_repeated(y, X, X_Test, method = "prediction", rowCount = ifelse(is.null(X_Test), nrow(X), nrow(X_Test)), num.trees_value, response_type, importance = "none", number_repetitions, verbose, ...)
+    pred_mat = repeatedResult[["result_mat"]]
+    avg_time_taken = repeatedResult[["timeTaken"]]
+    sel_mat = .compute_selection_mat(result_mat = pred_mat, response_type, select_for, selection_size, alpha)
     # Calculate the stability values
     if(stability_metric == "icc"){
       pred_stability = irr::icc(pred_mat)$value
@@ -165,10 +142,10 @@ opt_prediction = function(y, X, X_Test=NULL,
       }
       ps_definition = "Krippendorffs_alpha"
     }
-    tmp_res = data.frame(num.trees_values = num.trees_values[i],
+    tmp_res = data.frame(num.trees_values = num.trees_value,
                          pred_stability = pred_stability,
                          selection_stability = kappam.fleiss(sel_mat)$value,
-                         computation_time = mean(time_taken_vec))
+                         computation_time = avg_time_taken)
     summary_result = rbind(summary_result, tmp_res)
   }
   # Optional visualisation

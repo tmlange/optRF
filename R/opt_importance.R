@@ -73,32 +73,17 @@ opt_importance = function(y, X, number_repetitions = 10, alpha = 0.05,
   importanceStab = NULL
   selectionStab = NULL
   
-  for(nt in num.trees_values){
-    vi_mat = matrix(NA, nrow = ncol(X), ncol = number_repetitions)
-    sel_mat = matrix("rejected", nrow = ncol(X), ncol = number_repetitions)
-    time_taken_vec = numeric(number_repetitions)
-    for(rep in seq_len(number_repetitions)){
-      # Perform random forest to estimate the importance per variable
-      if(verbose){
-        message(paste0("Analysing random forest with ", nt, " trees, progress: ", round((rep/number_repetitions)*100, 0), "%            \r", sep=""), appendLF = F)
-      }
-      
-      start.time = Sys.time()
-      vi_result = .run_rf(y, X, X_Test = NULL, method = "importance",num.trees_value = nt, response_type, importance, ...)
-      time_taken_vec[rep] = as.numeric(difftime(Sys.time(), start.time, units = "secs"))
-      
-      # Fill matrices
-      vi_mat[, rep] = vi_result
-      selected_indices = order(vi_result, decreasing = T)[1:selection_size]
-      sel_mat[selected_indices, rep] = "selected"
-    }
+  for(num.trees_value in num.trees_values){
+    repeatedResult = .run_rf_repeated(y, X, X_Test = NULL, method = "importance", rowCount = ncol(X), num.trees_value, response_type, importance, number_repetitions, verbose, ...)
+    vi_mat = repeatedResult[["result_mat"]]
+    avg_time_taken = repeatedResult[["timeTaken"]]
+    sel_mat = .compute_selection_mat(result_mat = vi_mat, response_type = "metric", select_for = "high", selection_size, alpha = NULL)
     vi_stability = if(rank_based) irr::kendall(vi_mat)$value else irr::icc(vi_mat)$value
     sel_stability = irr::kappam.fleiss(sel_mat)$value
-    
-    tmp_res = data.frame(num.trees_values = nt,
+    tmp_res = data.frame(num.trees_values = num.trees_value,
                          VI_stability = vi_stability,
                          selection_stability = sel_stability,
-                         computation_time = mean(time_taken_vec))
+                         computation_time = avg_time_taken)
     summary_result = rbind(summary_result, tmp_res)
   }
   # Optional visualisation
