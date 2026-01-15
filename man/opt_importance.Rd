@@ -12,7 +12,7 @@ opt_importance(
   num.trees_values = c(250, 500, 750, 1000, 2000),
   importance = c("permutation", "impurity", "impurity_corrected"),
   visualisation = c("none", "importance", "selection"),
-  recommendation = c("importance", "selection", "none"),
+  recommendation = c("importance", "selection"),
   rec_thresh = 1e-06,
   round_recommendation = c("thousand", "hundred", "ten", "none"),
   rank_based = FALSE,
@@ -36,7 +36,7 @@ opt_importance(
 
 \item{visualisation}{Can be set to "importance" to draw a plot of the variable importance stability or to "selection" to draw a plot of the selection stability for the numbers of trees to be analysed.}
 
-\item{recommendation}{If set to "importance" (default) or "selection", a recommendation will be given based on optimised variable importance or selection stability. If set to be "none", the function will analyse the stability of random forest with the inserted numbers of trees without giving a recommendation.}
+\item{recommendation}{If set to "importance" (default) or "selection", a recommendation will be given based on optimised variable importance or selection stability.}
 
 \item{rec_thresh}{If the number of trees leads to an increase of stability smaller or equal to the value specified, this number of trees will be recommended. Default is 1e-6.}
 
@@ -48,7 +48,7 @@ opt_importance(
 
 \item{verbose}{Show computation status}
 
-\item{...}{Any other argument from the ranger function.}
+\item{...}{Any other argument from the ranger or ordfor functions.}
 }
 \value{
 An opt_importance_object containing the recommended number of trees, based on which measure the recommendation was given (importance or selection), a matrix summarising the estimated stability and computation time of a random forest with the recommended numbers of trees, a matrix containing the calculated stability and computation time for the analysed numbers of trees, and the parameters used to model the relationship between stability and numbers of trees.

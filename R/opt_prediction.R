@@ -7,8 +7,7 @@
 #' @param visualisation Can be set to "prediction" to draw a plot of the prediction stability or "selection" to draw a plot of the selection stability for the numbers of trees to be analysed.
 #' @param select_for What should be selected? In random forest classification, this must be set to a vector containing the values of the desired classes. In random forest regression, this can be set as "high" (default) to select the individuals with the highest predicted value, "low" to select the individuals with the lowest predicted value, or "zero" to select the individuals which predicted value is closest to zero.
 #' @param recommendation If set to "prediction" (default) or "selection", a recommendation will be given based on optimised prediction or selection stability.
-#' @param Krippendorff If the response is metric, should the prediction stability be calculated as the intraclass correlation coefficient (default) or as Krippendorff's alpha? If Krippendorff's alpha should be computed, the parameter "Krippendorff" must be set to either "interval" or "ratio" depending on the scale of the response variable. 
-#' @param rank_based If the response is metric, should the prediction stability be defined by the similarity of the predicted values via the intraclass correlation coefficient (rank_based == FALSE, default) or by the rankings of the objects via Kendall's W (rank_based == TRUE)?
+#' @param stability_metric Define the prediction stability metric that should be used. Valid options are "icc", "kendall", or "krippendorff" for a metric response, "fleiss_kappa" or "krippendorff" for a categorical response and "krippendorff" for an ordinal response.
 #' @inheritParams round_rec_helper
 #' @inheritParams number_rep_helper
 #' @inheritParams rec_thresh_helper
@@ -28,7 +27,6 @@
 #' }
 #'
 #' @export
-#' @importFrom irr icc kappam.fleiss kripp.alpha kendall
 #' @importFrom stats predict
 
 opt_prediction = function(y, X, X_Test=NULL,
@@ -38,7 +36,8 @@ opt_prediction = function(y, X, X_Test=NULL,
                           select_for = c("high", "low", "zero"),
                           recommendation = c("prediction","selection"),
                           rec_thresh = 1e-6, round_recommendation = c("thousand","hundred","ten","none"), 
-                          response_type = NULL, Krippendorff = NULL, rank_based = FALSE,
+                          response_type = NULL,
+                          stability_metric = NULL,
                           verbose = TRUE, ...){
   
   # (I) Input validation
@@ -50,8 +49,6 @@ opt_prediction = function(y, X, X_Test=NULL,
   rec_thresh = rec_thresh_helper(rec_thresh)
   num.trees_values = num.trees_values_helper(num.trees_values)
   
-  if(!is.logical(rank_based)) stop("Invalid value for 'rank_based'; must be TRUE or FALSE")
-  Krippendorff <- if (!is.null(Krippendorff)) match.arg(Krippendorff, c("ratio", "interval")) else NULL
   if(nrow(X) != length(y)) stop("Invalid input. Number of rows in 'X' does not match length of 'y'.")
   
   # Check value of y and response_type
@@ -59,22 +56,38 @@ opt_prediction = function(y, X, X_Test=NULL,
   y <- response_result$y
   response_type <- response_result$response_type
   
-  
   # Check the select_for variable
   select_for = select_for_helper(y, response_type, select_for, alpha)
   
+  # Check value of stability_metric
+  if(is.null(stability_metric)){
+    if(response_type == "metric") stability_metric = "icc"
+    if(response_type == "ordinal") stability_metric = "krippendorff"
+    if(response_type == "categorical") stability_metric = "fleiss_kappa"
+  } else{
+    stability_metric = match.arg(stability_metric, c("icc", "kendall", "krippendorff", "fleiss_kappa"))
+  }
+  if(response_type == "metric" && stability_metric %in% c("fleiss_kappa")){
+    stop("For metric response, stability_metric must be 'icc', 'kendall' or 'krippendorff'")
+  }
+  if(response_type == "ordinal" && stability_metric %in% c("kendall", "icc")){
+    stop("For ordinal response, stability_metric must be 'krippendorff' or 'fleiss_kappa'")
+  }
+  if(response_type == "categorical" && stability_metric %in% c("icc", "kendall")){
+    stop("For categorical response, stability_metric must be 'fleiss_kappa' or 'krippendorff'")
+  }
   # Verify variables of the test data set
   if(is.null(X_Test)){
     if(verbose){
       message("No test data were entered. Out of bag data will be used.")
     }
-    sample.IDs = paste0("ID_", c(1:nrow(X)))
+    sample_IDs = paste0("ID_", c(1:nrow(X)))
   }
   else{
     if(ncol(X) != ncol(X_Test) | !all(colnames(X) %in% colnames(X_Test))){
       stop("X_Test needs to contain the same variables as X.")
     }
-    sample.IDs = paste0("ID_", c(1:nrow(X_Test)))
+    sample_IDs = paste0("ID_", c(1:nrow(X_Test)))
   }
   
   # Create test sequence
@@ -85,7 +98,7 @@ opt_prediction = function(y, X, X_Test=NULL,
   if(response_type == "metric"){
     # Defining the number of individuals to be selected from the data set
     if(alpha < 1){
-      selection_size = round(length(sample.IDs)*alpha)
+      selection_size = round(length(sample_IDs)*alpha)
     }
     else{
       selection_size = round(alpha)
@@ -93,7 +106,9 @@ opt_prediction = function(y, X, X_Test=NULL,
   }
   
   # Check if the test data set consists of multiple objects
-  MOPS.analysis = is.null(X_Test) || nrow(X_Test) > 1
+  if(length(sample_IDs) < 2){
+    stop("The test data needs to have at least 2 objects in order to calculate stability.")
+  }
 
   # (II) Run the analysis
   
@@ -102,12 +117,8 @@ opt_prediction = function(y, X, X_Test=NULL,
   selectionStab = NULL
   
   for(i in 1:length(num.trees_values)){
-    if(MOPS.analysis){
-      pred_mat = matrix(NA, nrow = nrow(X), ncol = number_repetitions)
-      sel_mat = matrix("rejected", nrow = nrow(X), ncol = number_repetitions)
-    } else{
-      pred_vector = vector("list", length = number_repetitions)
-    }
+    pred_mat = matrix(NA, nrow = length(sample_IDs), ncol = number_repetitions)
+    sel_mat = matrix("rejected", nrow = length(sample_IDs), ncol = number_repetitions)
     time_taken_vec = numeric(number_repetitions)
     for(rep in 1:number_repetitions){
       
@@ -138,82 +149,55 @@ opt_prediction = function(y, X, X_Test=NULL,
         }
       }
       time_taken_vec[rep] = as.numeric(difftime(Sys.time(), start.time, units = "secs"))
+      pred_mat[, rep] = predictions
       
-      # Analysis of prediction stability and selection stability for multiple test objects 
-      if(MOPS.analysis == TRUE){
-        pred_mat[, rep] = predictions
-        
-        # Selection logic
-        if(response_type == "metric"){
-          ranks = if(select_for == "high") rank(-predictions, ties.method = "first") else
-            if(select_for == "low") rank(predictions, ties.method = "first") else
-              rank(abs(predictions), ties.method = "first")
-          selected_idx = which(ranks <= selection_size)
-        } else if(response_type == "ordinal"){
-          selected_idx = if(select_for == "high") which(predictions >= alpha) else which(predictions <= alpha)
-        } else{ # categorical
-          selected_idx = which(predictions %in% select_for)
-        }
-        sel_mat[selected_idx, rep] = "selected"
-      } else{
-        pred_vector[[rep]] = predictions
-      }
-    }
-    
-    # Create the data frame summary_result for multiple objects
-    if(MOPS.analysis == TRUE){
-      # Calculating the prediction stability
+      # Selection logic
       if(response_type == "metric"){
-        if(is.null(Krippendorff) & rank_based == FALSE){
-          pred_stability = icc(pred_mat)$value
-          ps_definition = "ICC"
-        }
-        if(is.null(Krippendorff) & rank_based == TRUE){
-          pred_stability = kendall(pred_mat)$value
-          ps_definition = "Kendalls_W"
-        }
-        if(!is.null(Krippendorff)){
-          pred_mat = t(pred_mat)
-          pred_stability = kripp.alpha(pred_mat, method=Krippendorff)$value
-          ps_definition = "Krippendorffs_alpha"
-        }
+        ranks = if(select_for == "high") rank(-predictions, ties.method = "first") else
+          if(select_for == "low") rank(predictions, ties.method = "first") else
+            rank(abs(predictions), ties.method = "first")
+        selected_idx = which(ranks <= selection_size)
+      } else if(response_type == "ordinal"){
+        selected_idx = if(select_for == "high") which(predictions >= alpha) else which(predictions <= alpha)
+      } else{ # categorical
+        selected_idx = which(predictions %in% select_for)
       }
-      if(response_type == "ordinal"){
-        pred_mat = t(pred_mat)
-        pred_stability = kripp.alpha(pred_mat, method="ordinal")$value
-        ps_definition = "Krippendorffs_alpha"
+      sel_mat[selected_idx, rep] = "selected"
+    }
+    # Calculate the stability values
+    if(stability_metric == "icc"){
+      pred_stability = irr::icc(pred_mat)$value
+      ps_definition = "ICC"
+    } else if(stability_metric == "kendall"){
+      pred_stability = irr::kendall(pred_mat)$value
+      ps_definition = "Kendalls_W"
+    } else if(stability_metric == "fleiss_kappa"){
+      pred_stability = irr::kappam.fleiss(pred_mat)$value
+      ps_definition = "Fleiss_Kappa"
+    } else{
+      pred_mat = t(pred_mat)
+      if(response_type == "metric"){
+        pred_stability = irr::kripp.alpha(pred_mat, method="interval")$value
+      } else if(response_type == "ordinal"){
+        pred_stability = irr::kripp.alpha(pred_mat, method="ordinal")$value
+      } else{
+        pred_stability = irr::kripp.alpha(pred_mat, method="nominal")$value
       }
-      if(response_type == "categorical"){
-        pred_stability = kappam.fleiss(pred_mat)$value
-        ps_definition = "Fleiss_Kappa"
-      }
-      tmp_res = data.frame(num.trees_values = num.trees_values[i],
-                           pred_stability = pred_stability,
-                           selection_stability = kappam.fleiss(sel_mat)$value,
-                           computation_time = mean(time_taken_vec))
-      summary_result = rbind(summary_result, tmp_res)
+      ps_definition = "Krippendorffs_alpha"
     }
-    
-    # Create the data frame summary_result for a single objects
-    if(MOPS.analysis == FALSE){
-      SOPS_value = 1/(1+(sd(prediction_vector)/IQR(prediction_vector)))
-      ps_definition = "Single_Object_Prediction_Stability"
-      
-      tmp_res = data.frame(num.trees_values = num.trees_values[i],
-                           pred_stability = SOPS_value,
-                           computation_time = time.taken/number_repetitions)
-      summary_result = rbind(summary_result, tmp_res)
-    }
-    
-    # Optional visualisation
-    if(visualisation == "prediction") create_stability_plot(summary_result$pred_stability, summary_result$num.trees_values, "prediction stability")
-    if(visualisation == "selection") create_stability_plot(summary_result$selection_stability, summary_result$num.trees_values, "selection stability")
-    
-    # If there are more than four data points, fit stability models
-    if(nrow(summary_result) >= 4){
-      predictionStab = fit_stability_model(summary_result, "pred_stability", test_seq, visualisation == "prediction")
-      selectionStab = fit_stability_model(summary_result, "selection_stability", test_seq, visualisation == "selection")
-    }
+    tmp_res = data.frame(num.trees_values = num.trees_values[i],
+                         pred_stability = pred_stability,
+                         selection_stability = kappam.fleiss(sel_mat)$value,
+                         computation_time = mean(time_taken_vec))
+    summary_result = rbind(summary_result, tmp_res)
+  }
+  # Optional visualisation
+  if(visualisation == "prediction") create_stability_plot(summary_result$pred_stability, summary_result$num.trees_values, "prediction stability")
+  if(visualisation == "selection") create_stability_plot(summary_result$selection_stability, summary_result$num.trees_values, "selection stability")
+  # If there are more than four data points, fit stability models
+  if(nrow(summary_result) >= 4){
+    predictionStab = fit_stability_model(summary_result, "pred_stability", test_seq, visualisation == "prediction")
+    selectionStab = fit_stability_model(summary_result, "selection_stability", test_seq, visualisation == "selection")
   }
   runtime_model = stats::lm(computation_time ~ num.trees_values, data = summary_result)
   

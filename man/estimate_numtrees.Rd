@@ -2,7 +2,7 @@
 % Please edit documentation in R/estimate_numtrees.R
 \name{estimate_numtrees}
 \alias{estimate_numtrees}
-\title{Estimate the required number of trees}
+\title{Estimate the required number of trees to reach a certain stability}
 \usage{
 estimate_numtrees(
   optRF_object,
@@ -18,7 +18,7 @@ estimate_numtrees(
 \item{for_stability}{Either a single stability value or a vector containing multiple stability values for which the number of trees should be estimated.}
 }
 \value{
-A data frame summarising the estimated stability and run time in seconds for the given num.trees values.
+A data frame summarising the estimated num.trees values and run time in seconds for the given stability values.
 }
 \description{
 Estimate the number of trees required to achieve certain stability of random forest

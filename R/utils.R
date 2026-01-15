@@ -261,3 +261,18 @@ get_target_measure = function(measure, is_pred){
   return(target)
 }
 
+.run_rf_engine = function(y, X, X_Test = NULL, method = c("prediction", "importance"),
+                         number_repetitions,
+                         num.trees_values,
+                         visualisation = c("primary","selection"),
+                         recommendation = c("prediction","selection"),
+                         rec_thresh = 1e-6, round_recommendation = c("thousand","hundred","ten","none"),
+                         stability_metric, verbose = TRUE, ...
+                         ){
+  round_rec = round_rec_helper(round_recommendation)
+  visualisation = match.arg(visualisation)
+  recommendation = match.arg(recommendation)
+  number_repetitions = number_rep_helper(number_repetitions)
+  rec_thresh = rec_thresh_helper(rec_thresh)
+  num.trees_values = num.trees_values_helper(num.trees_values)
+}

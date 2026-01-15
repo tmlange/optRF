@@ -7,7 +7,7 @@
 plot_stability(
   optRF_object,
   measure = c("selection", "importance", "prediction"),
-  from = 0,
+  from = 1,
   to = 1e+05,
   add_recommendation = TRUE,
   add = FALSE,
