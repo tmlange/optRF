@@ -110,28 +110,5 @@ opt_importance = function(y, X, number_repetitions = 10, alpha = 0.05,
   }
   
   # Create output
-  # Base output
-  output = list(variable_importance_stability_definition = VI_definition, result_table = summary_result)
-  # Add model parameters if available
-  model_params = list()
-  if(!is.null(importanceStab)) model_params[["Variable_importance_stability"]] = importanceStab$model$m$getPars()
-  if(!is.null(selectionStab)) model_params[["Selection_stability"]] = selectionStab$model$m$getPars()
-  if(length(model_params) > 0){
-    output$model_parameters = do.call(rbind, model_params)
-    colnames(output$model_parameters) = c("Inflection_point", "Slope")
-  }
-  # Add recommendation if available
-  if(!is.na(recommended_num.trees)){
-    if(verbose) message("\n Recommended number of trees: ", recommended_num.trees)
-    output$recommendation = recommended_num.trees
-    output$recommendation_for = recommendation
-    # Calculate expected stability for recommended number of trees
-    stab_values = c()
-    if(!is.null(importanceStab)) stab_values["Variable_importance_stability"] = importanceStab$estimates[importanceStab$estimates$num.trees==recommended_num.trees,]$estimated_stability
-    if(!is.null(selectionStab)) stab_values["Selection_stability"] = selectionStab$estimates[selectionStab$estimates$num.trees==recommended_num.trees,]$estimated_stability
-    stab_values["Computation_time"] = predict(runtime_model, newdata = data.frame(num.trees_values = recommended_num.trees))
-    output$expected_RF_stability <- matrix(stab_values, ncol = 1, dimnames = list(names(stab_values), "Value"))
-  }
-  class(output) = "opt_importance_object"
-  return(output)
+  return(.create_output(method = "Variable_importance", stability_definition = VI_definition, result_table = summary_result, primaryStab = importanceStab, selectionStab, runtime_model, recommended_num.trees, recommendation, verbose))
 }

@@ -325,6 +325,34 @@ get_target_measure = function(measure, is_pred){
   }
 }
 
+.create_output = function(method, stability_definition, result_table, primaryStab, selectionStab, runtime_model, recommended_num.trees, recommendation, verbose){
+  # Base output
+  output = list(result_table = result_table)
+  output[[paste0(method,"_stability_definition")]] = stability_definition
+  # Add model parameters if available
+  model_params = list()
+  if(!is.null(primaryStab)) model_params[[paste0(method,"_stability")]] = primaryStab$model$m$getPars()
+  if(!is.null(selectionStab)) model_params[["Selection_stability"]] = selectionStab$model$m$getPars()
+  if(length(model_params) > 0){
+    output$model_parameters = do.call(rbind, model_params)
+    colnames(output$model_parameters) = c("Inflection_point", "Slope")
+  }
+  # Add recommendation if available
+  if(!is.na(recommended_num.trees)){
+    if(verbose) message("\n Recommended number of trees: ", recommended_num.trees)
+    output$recommendation = recommended_num.trees
+    output$recommendation_for = recommendation
+    # Calculate expected stability for recommended number of trees
+    stab_values = c()
+    if(!is.null(primaryStab)) stab_values[paste0(method,"_stability")] = primaryStab$estimates[primaryStab$estimates$num.trees==recommended_num.trees,]$estimated_stability
+    if(!is.null(selectionStab)) stab_values["Selection_stability"] = selectionStab$estimates[selectionStab$estimates$num.trees==recommended_num.trees,]$estimated_stability
+    stab_values["Computation_time"] = predict(runtime_model, newdata = data.frame(num.trees_values = recommended_num.trees))
+    output$expected_RF_stability <- matrix(stab_values, ncol = 1, dimnames = list(names(stab_values), "Value"))
+  }
+  class(output) = ifelse(method == "Prediction","opt_prediction_object","opt_importance_object")
+  return(output)
+}
+
 .run_rf_engine = function(y, X, X_Test = NULL, method = c("prediction", "importance"),
                          number_repetitions,
                          num.trees_values,
