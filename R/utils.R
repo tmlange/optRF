@@ -325,7 +325,16 @@ get_target_measure = function(measure, is_pred){
   }
 }
 
-.create_output = function(method, stability_definition, result_table, primaryStab, selectionStab, runtime_model, recommended_num.trees, recommendation, verbose){
+.create_output = function(method, stability_definition, result_table, primaryStab, selectionStab, runtime_model, rec_thresh, round_rec, recommendation, verbose){
+  recommended_num.trees = NA
+  rec_Stab = if(recommendation == "prediction" || recommendation == "importance") primaryStab else selectionStab
+  if(!is.null(rec_Stab)){
+    recommended_num.trees = find_recommendation(rec_Stab$estimates, rec_Stab$model, rec_thresh, round_rec)
+    # If the recommended number of trees is for some reason lower than 500 (default), set it to be 500
+    if(recommended_num.trees < 500) recommended_num.trees = 500
+  } else{
+    warning("A recommendation cannot be given because the relationship between the requested stability and numbers of trees could not be modelled.")
+  }
   # Base output
   output = list(result_table = result_table)
   output[[paste0(method,"_stability_definition")]] = stability_definition

@@ -159,17 +159,5 @@ opt_prediction = function(y, X, X_Test=NULL,
   runtime_model = stats::lm(computation_time ~ num.trees_values, data = summary_result)
   
   # (III) Prepare the output
-  
-  # After all num.trees_values have been analysed, give a recommendation
-  recommended_num.trees = NA
-  rec_Stab = if(recommendation == "prediction") predictionStab else selectionStab
-  if(!is.null(rec_Stab)){
-    recommended_num.trees = find_recommendation(rec_Stab$estimates, rec_Stab$model, rec_thresh, round_rec)
-    # If the recommended number of trees is for some reason lower than 500 (default), set it to be 500
-    if(recommended_num.trees < 500) recommended_num.trees = 500
-  } else{
-    warning("A recommendation cannot be given because the relationship between the requested stability and numbers of trees could not be modelled.")
-  }
-  # Create output
-  return(.create_output(method = "Prediction", stability_definition = ps_definition, result_table = summary_result, primaryStab = predictionStab, selectionStab, runtime_model, recommended_num.trees, recommendation, verbose))
+  return(.create_output(method = "Prediction", stability_definition = ps_definition, result_table = summary_result, primaryStab = predictionStab, selectionStab, runtime_model, rec_thresh, round_rec, recommendation, verbose))
 }
