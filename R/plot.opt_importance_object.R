@@ -7,7 +7,7 @@ plot.opt_importance_object = function(x, ...){
 
   plot(x$result_table$VI_stability ~ x$result_table$num.trees_values,
        main='Relationship between\n variable importance stability and number of trees',
-       ylab="Variable importance stability", xlab="number of trees", ...)
+       ylab="Variable importance stability", xlab="number of trees", col="black", cex=1.5, pch=20, ...)
   graphics::lines(TwoPLmodel(plot_seq, x$model_parameters[1,1], x$model_parameters[1,2]) ~ plot_seq,
          col="navyblue", lwd=3)
 }

@@ -107,16 +107,14 @@ opt_importance = function(y, X, number_repetitions = 10, alpha = 0.05,
                          selection_stability = sel_stability,
                          computation_time = mean(time_taken_vec))
     summary_result = rbind(summary_result, tmp_res)
-    
-    # Optional visualisation
-    if(visualisation == "importance") create_stability_plot(summary_result$VI_stability, summary_result$num.trees_values, "variable importance stability")
-    if(visualisation == "selection") create_stability_plot(summary_result$selection_stability, summary_result$num.trees_values, "selection stability")
-    
-    # If there are more than four data points, fit stability models
-    if(nrow(summary_result) >= 4){
-      importanceStab = fit_stability_model(summary_result, "VI_stability", test_seq, visualisation == "importance")
-      selectionStab = fit_stability_model(summary_result, "selection_stability", test_seq, visualisation == "selection")
-    }
+  }
+  # Optional visualisation
+  if(visualisation == "importance") create_stability_plot(summary_result$VI_stability, summary_result$num.trees_values, "variable importance stability")
+  if(visualisation == "selection") create_stability_plot(summary_result$selection_stability, summary_result$num.trees_values, "selection stability")
+  # If there are more than four data points, fit stability models
+  if(nrow(summary_result) >= 4){
+    importanceStab = fit_stability_model(summary_result, "VI_stability", test_seq, visualisation == "importance")
+    selectionStab = fit_stability_model(summary_result, "selection_stability", test_seq, visualisation == "selection")
   }
   runtime_model = stats::lm(computation_time ~ num.trees_values, data = summary_result)
   
