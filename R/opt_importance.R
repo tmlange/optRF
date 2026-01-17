@@ -39,63 +39,40 @@ opt_importance = function(y, X, number_repetitions = 10, alpha = 0.05,
                           verbose = TRUE, ...){
   
   # (I) Input validation
-  
   round_rec = round_rec_helper(round_recommendation)
   importance = match.arg(importance)
   visualisation = match.arg(visualisation)
   recommendation = match.arg(recommendation)
-  number_repetitions = number_rep_helper(number_repetitions)
-  rec_thresh = rec_thresh_helper(rec_thresh)
-  num.trees_values = num.trees_values_helper(num.trees_values)
-  
   if(!is.logical(rank_based)) stop("'rank_based' must be TRUE or FALSE.")
-  VI_definition = if(rank_based) "Kendalls_W" else "ICC"
-  if(nrow(X) != length(y)) stop("Invalid input. Number of rows in 'X' does not match length of 'y'.")
-  
-  # Check value of y and response_type
-  response_result = response_type_helper(response_type, y)
-  y = response_result$y
-  response_type = response_result$response_type
-  
-  # Determine selection size
-  if(!is.numeric(alpha) || length(alpha) != 1 || alpha <= 0 || alpha >= ncol(X)){
-    stop("'alpha' must be a single positive number (proportion or count)")
-  }
-  selection_size = if(alpha < 1) round(ncol(X)*alpha) else round(alpha)
-  
-  # Create test sequence
-  variable_number = round(ncol(X), -2)
-  test_seq = if(variable_number < 100000) seq(10, 1e6, 10) else seq(10, round((variable_number*100), -1), 10)
+  stability_metric = if(rank_based) "kendall" else "icc"
   
   # (II) Run the analysis
-  
-  summary_result = data.frame()
-  importanceStab = NULL
-  selectionStab = NULL
-  
-  for(num.trees_value in num.trees_values){
-    repeatedResult = .run_rf_repeated(y, X, X_Test = NULL, method = "importance", rowCount = ncol(X), num.trees_value, response_type, importance, number_repetitions, verbose, ...)
-    vi_mat = repeatedResult[["result_mat"]]
-    avg_time_taken = repeatedResult[["timeTaken"]]
-    sel_mat = .compute_selection_mat(result_mat = vi_mat, response_type = "metric", select_for = "high", selection_size, alpha = NULL)
-    vi_stability = if(rank_based) irr::kendall(vi_mat)$value else irr::icc(vi_mat)$value
-    sel_stability = irr::kappam.fleiss(sel_mat)$value
-    tmp_res = data.frame(num.trees_values = num.trees_value,
-                         VI_stability = vi_stability,
-                         selection_stability = sel_stability,
-                         computation_time = avg_time_taken)
-    summary_result = rbind(summary_result, tmp_res)
-  }
+  rf_result = .run_rf_engine(y = y, X = X, X_Test = NULL, method = "importance",
+                                  number_repetitions = number_repetitions,
+                                  num.trees_values = num.trees_values,
+                                  alpha = alpha,
+                                  rec_thresh = rec_thresh, stability_metric = stability_metric, 
+                                  response_type = response_type, importance = importance, 
+                                  verbose = verbose, ...)
+  summary_result = rf_result[[1]]
+  stability_definiton = rf_result[[2]]
+
+  # (III) Fit stability models
   # Optional visualisation
   if(visualisation == "importance") create_stability_plot(summary_result$VI_stability, summary_result$num.trees_values, "variable importance stability")
   if(visualisation == "selection") create_stability_plot(summary_result$selection_stability, summary_result$num.trees_values, "selection stability")
   # If there are more than four data points, fit stability models
+  # Create test sequence
+  variable_number = round(ncol(X), -2)
+  test_seq = if(variable_number < 100000) seq(10, 1e6, 10) else seq(10, round((variable_number*100), -1), 10)
+  importanceStab = NULL
+  selectionStab = NULL
   if(nrow(summary_result) >= 4){
     importanceStab = fit_stability_model(summary_result, "VI_stability", test_seq, visualisation == "importance")
     selectionStab = fit_stability_model(summary_result, "selection_stability", test_seq, visualisation == "selection")
   }
   runtime_model = stats::lm(computation_time ~ num.trees_values, data = summary_result)
   
-  # (III) Prepare the output
-  return(.create_output(method = "Variable_importance", stability_definition = VI_definition, result_table = summary_result, primaryStab = importanceStab, selectionStab, runtime_model, rec_thresh, round_rec, recommendation, verbose))
+  # (IV) Prepare the output
+  return(.create_output(method = "Variable_importance", stability_definition = stability_definiton, result_table = summary_result, primaryStab = importanceStab, selectionStab, runtime_model, rec_thresh, round_rec, recommendation, verbose))
 }
