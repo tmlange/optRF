@@ -40,9 +40,10 @@ opt_importance = function(y, X, number_repetitions = 10, alpha = 0.05,
   
   # (I) Input validation
   round_rec = round_rec_helper(round_recommendation)
-  importance = match.arg(importance)
+  rec_thresh = rec_thresh_helper(rec_thresh)
   visualisation = match.arg(visualisation)
   recommendation = match.arg(recommendation)
+  importance = match.arg(importance)
   if(!is.logical(rank_based)) stop("'rank_based' must be TRUE or FALSE.")
   stability_metric = if(rank_based) "kendall" else "icc"
   
@@ -54,25 +55,8 @@ opt_importance = function(y, X, number_repetitions = 10, alpha = 0.05,
                                   rec_thresh = rec_thresh, stability_metric = stability_metric, 
                                   response_type = response_type, importance = importance, 
                                   verbose = verbose, ...)
-  summary_result = rf_result[[1]]
-  stability_definition = rf_result[[2]]
-
-  # (III) Fit stability models
-  # Optional visualisation
-  if(visualisation == "importance") create_stability_plot(summary_result$variable_importance_stability, summary_result$num.trees_values, "variable importance stability")
-  if(visualisation == "selection") create_stability_plot(summary_result$selection_stability, summary_result$num.trees_values, "selection stability")
-  # If there are more than four data points, fit stability models
-  # Create test sequence
-  variable_number = round(ncol(X), -2)
-  test_seq = if(variable_number < 100000) seq(10, 1e6, 10) else seq(10, round((variable_number*100), -1), 10)
-  importanceStab = NULL
-  selectionStab = NULL
-  if(nrow(summary_result) >= 4){
-    importanceStab = fit_stability_model(summary_result, "variable_importance_stability", test_seq, visualisation == "importance")
-    selectionStab = fit_stability_model(summary_result, "selection_stability", test_seq, visualisation == "selection")
-  }
-  runtime_model = stats::lm(computation_time ~ num.trees_values, data = summary_result)
   
-  # (IV) Prepare the output
-  return(.create_output(method = "Variable_importance", stability_definition = stability_definition, result_table = summary_result, primaryStab = importanceStab, selectionStab, runtime_model, rec_thresh, round_rec, recommendation, verbose))
+  # (III) Fit stability models and create output
+  config = list(method = "Variable_importance", col = "variable_importance_stability", vis_key = "importance")
+  return(.postprocess_rf_results(rf_result, X, config, visualisation, recommendation, rec_thresh, round_rec, verbose))
 }

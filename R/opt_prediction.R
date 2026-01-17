@@ -27,7 +27,6 @@
 #' }
 #'
 #' @export
-#' @importFrom stats predict
 
 opt_prediction = function(y, X, X_Test=NULL,
                           number_repetitions = 10, alpha = 0.15,
@@ -43,6 +42,7 @@ opt_prediction = function(y, X, X_Test=NULL,
   # (I) Input validation
   
   round_rec = round_rec_helper(round_recommendation)
+  rec_thresh = rec_thresh_helper(rec_thresh)
   visualisation = match.arg(visualisation)
   recommendation = match.arg(recommendation)
 
@@ -54,25 +54,8 @@ opt_prediction = function(y, X, X_Test=NULL,
                              rec_thresh = rec_thresh, stability_metric = stability_metric, 
                              response_type = response_type, importance = "none", 
                              verbose = verbose, ...)
-  summary_result = rf_result[[1]]
-  stability_definition = rf_result[[2]]
   
-  # (III) Fit stability models
-  # Optional visualisation
-  if(visualisation == "prediction") create_stability_plot(summary_result$prediction_stability, summary_result$num.trees_values, "prediction stability")
-  if(visualisation == "selection") create_stability_plot(summary_result$selection_stability, summary_result$num.trees_values, "selection stability")
-  # If there are more than four data points, fit stability models
-  # Create test sequence
-  variable_number = round(ncol(X), -2)
-  test_seq = if(variable_number < 100000) seq(10, 1e6, 10) else seq(10, round((variable_number*100), -1), 10)
-  predictionStab = NULL
-  selectionStab = NULL
-  if(nrow(summary_result) >= 4){
-    predictionStab = fit_stability_model(summary_result, "prediction_stability", test_seq, visualisation == "prediction")
-    selectionStab = fit_stability_model(summary_result, "selection_stability", test_seq, visualisation == "selection")
-  }
-  runtime_model = stats::lm(computation_time ~ num.trees_values, data = summary_result)
-  
-  # (IV) Prepare the output
-  return(.create_output(method = "Prediction", stability_definition = stability_definition, result_table = summary_result, primaryStab = predictionStab, selectionStab, runtime_model, rec_thresh, round_rec, recommendation, verbose))
+  # (III) Fit stability models and create output
+  config = list(method = "Prediction", col = "prediction_stability", vis_key = "prediction")
+  return(.postprocess_rf_results(rf_result, X, config, visualisation, recommendation, rec_thresh, round_rec, verbose))
 }

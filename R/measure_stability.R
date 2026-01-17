@@ -25,248 +25,38 @@
 #' }
 #'
 #' @export
-#' @importFrom irr icc kappam.fleiss
-#' @importFrom stats predict
-#' @importFrom ranger ranger
 
+measure_stability = function(y, X, method=c("prediction","importance"), X_Test=NULL,
+                             number_repetitions = 10, alpha = NULL,
+                             num.trees_values = c(250, 500, 750, 1000), 
+                             importance = c("permutation", "impurity", "impurity_corrected"), 
+                             select_for = c("high", "low", "zero"),
+                             rank_based = FALSE,
+                             response_type = NULL,
+                             stability_metric = NULL,
+                             verbose = TRUE, ...){
 
-measure_stability = function(y, X, num.trees=500, method=c("prediction","importance"), X_Test=NULL,
-                             alpha = NULL, select_for = c("high", "low", "zero"),
-                             importance = c("permutation", "impurity", "impurity_corrected"),
-                             number_repetitions=10, verbose = TRUE, ...){
-
-  # Check value of method
+  # (I) Input validation
   method = match.arg(method)
-
-  # Check value of number_repetitions
-  number_repetitions = number_rep_helper(number_repetitions)
-
-  # Check if y and X have the same number of observations
-  if(nrow(X) != length(y)){
-    stop("Invalid input. Length of 'y' does not equal number of rows of 'X'.")
-  }
-
-  num.trees_values = num.trees_values_helper(num.trees_values)
-
-  # Run the analysis
-
-  summary.result = data.frame()
-
-  if(method=="prediction"){
-
-    # Verify type of response variable y and the value of select_for
-    if(is.numeric(y)){
-      # Validate select_for for numeric y
-      select_for = match.arg(select_for)
-    }
-    else if(is.factor(y)){
-      # Validate select_for for categorical y
-      if(missing(select_for) || !all(select_for %in% levels(y))){
-        stop("For a categorical response variable, select_for must be a subset of its classes.")
-      }
-      select_for = unique(select_for)
-
-      # Ensure select_for does not include all levels of y.
-      if(length(select_for) == length(levels(y))){
-        stop("select_for cannot include all classes of the categorical response variable.")
-      }
-    }
-    else {
-      stop("The response variable is neither numeric nor a factor.")
-    }
-
-    # Verify variables of the test data set
-    if(is.null(X_Test)){
-      if(verbose){
-        message("No test data were entered. Out of bag data will be used.")
-      }
-      sample.IDs = paste0("ID_", c(1:nrow(X)))
-    }
-    else{
-      if(ncol(X) != ncol(X_Test) | !all(colnames(X) %in% colnames(X_Test))){
-        stop("X_Test needs to contain the same variables as X.")
-      }
-      sample.IDs = paste0("ID_", c(1:nrow(X_Test)))
-    }
-
-    if(is.null(alpha)){
-      alpha = 0.15
-    }
-
-    if(!is.numeric(alpha) | any(alpha < 0)){
-      stop("alpha needs to be a positive number.")
-    }
-    # Defining the number of individuals to be selected from the data set
-    if(alpha < 1){
-      selection.size = round(length(sample.IDs)*alpha)
-    }
-    else{
-      selection.size = round(alpha)
-    }
-
-    for(i in 1:length(num.trees)){
-
-      D_preds = data.frame(ID= sample.IDs)
-      D_selection = data.frame(ID= sample.IDs)
-
-      for(rep in 1:number_repetitions){
-
-        if(verbose){
-          message(paste0("Analysing random forest with ", num.trees[i], " trees, progress: ", round((rep/number_repetitions)*100, 0), "%            \r", sep=""), appendLF = F)
-        }
-
-        myForest <- ranger(x=X,
-                           y=y,
-                           num.trees = num.trees[i],
-                           verbose = FALSE,
-                           write.forest = TRUE,
-                           keep.inbag = TRUE,
-                           ...)
-
-        if(is.null(X_Test)){
-          all_predictions = predict(myForest, data = X, predict.all = TRUE)$predictions
-          if(is.factor(y)){
-            predictions = factor(character(length(y)), levels = levels(y))
-          }
-          else{
-            predictions = numeric(length(y))
-          }
-          for(observation_number in 1:length(y)){
-            inbag_counts = sapply(myForest[["inbag.counts"]], `[`, observation_number)
-            keep.predictions = all_predictions[observation_number, inbag_counts == 0]
-            if(is.factor(y)){
-              predictions[observation_number] = levels(y)[which.max(table(keep.predictions))]
-            }
-            else{
-              predictions[observation_number] = mean(keep.predictions)
-            }
-          }
-        }
-        else{
-          predictions <- predict(myForest, data=X_Test)$predictions
-        }
-
-        # Creating the data frame to estimate the prediction stability (D_preds)
-        tmp_D_preds = data.frame(predictions)
-        names(tmp_D_preds) = paste0("Predictions_run_", rep)
-        D_preds = cbind(D_preds, tmp_D_preds)
-
-        # Creating the data frame to estimate the selection stability (D_selection)
-        D_pred_test = data.frame(ID = sample.IDs, pred = predictions)
-
-        if(is.numeric(y)){
-          # Perform the selection
-          if(select_for == "high"){
-            D_pred_test = D_pred_test[order(D_pred_test$pred, decreasing=T),]
-          }
-          else if(select_for == "low"){
-            D_pred_test = D_pred_test[order(D_pred_test$pred, decreasing=F),]
-          }
-          else{
-            # If it is neither "low" nor "high", it must be "zero"
-            # To analyse which predictions are closest to zero, calculate absolute values
-            D_pred_test$pred = abs(D_pred_test$pred)
-            D_pred_test = D_pred_test[order(D_pred_test$pred, decreasing=F),]
-          }
-          selection = D_pred_test$ID[1:selection.size]
-        }
-        else{
-          selection = D_pred_test[D_pred_test$pred %in% select_for,]$ID
-        }
-        tmp_D_selection = data.frame(ID = sample.IDs)
-        tmp_D_selection$selection = "rejected"
-        tmp_D_selection[tmp_D_selection$ID %in% selection,]$selection = "selected"
-        names(tmp_D_selection) = c("ID", paste0("Selections_in_run_", rep))
-        D_selection = merge(D_selection, tmp_D_selection, by="ID")
-      }
-
-      # Removing the column with the IDs so that D_preds is a data frame that contains only the predictions
-      D_preds = D_preds[,-1]
-
-      # Removing the column with the IDs so that D_selection is a data frame that contains only the levels "selected" and "not_selected"
-      D_selection = D_selection[,-1]
-
-      # Summarising the results
-      if(is.numeric(y)){
-        pred_stability = icc(D_preds)$value
-      }
-      else{
-        pred_stability = kappam.fleiss(D_preds)$value
-      }
-      tmp_res = data.frame(num.trees = num.trees[i],
-                           pred_stability = pred_stability,
-                           selection_stability = kappam.fleiss(D_selection)$value)
-      summary.result = rbind(summary.result, tmp_res)
-    }
-  }
-  else{
-
-    # Check value of importance
+  if(method == "importance"){
     importance = match.arg(importance)
-
-    # If y is neither numeric nor a factor, return an error message
-    if(!is.numeric(y) & !is.factor(y)){
-      stop("The response variable is neither numeric nor a factor")
-    }
-
-    if(is.null(alpha)){
-      alpha = 0.05
-    }
-    if(!is.numeric(alpha) | any(alpha < 0)){
-      stop("alpha needs to be a positive number.")
-    }
-    if(alpha < 1){
-      selection.size = round(ncol(X)*alpha)
-    }
-    else{
-      selection.size = round(alpha)
-    }
-
-    for(i in 1:length(num.trees)){
-
-      D_VI = data.frame(variable.name = names(X))
-      D_selection = data.frame(variable.name = names(X))
-      for(rep in 1:number_repetitions){
-
-        if(verbose){
-          message(paste0("Analysing random forest with ", num.trees[i], " trees, progress: ", round((rep/number_repetitions)*100, 0), "%            \r", sep=""), appendLF = F)
-        }
-
-        myForest <- ranger(x=X,
-                           y=y,
-                           num.trees = num.trees[i],
-                           importance = importance,
-                           verbose = FALSE,
-                           write.forest = TRUE,
-                           ...)
-        VI_result = data.frame(myForest$variable.importance)
-        names(VI_result) = paste0("VI_run", rep)
-        VI_result$variable.name = row.names(VI_result)
-
-        VI_result = VI_result[order(VI_result$VI, decreasing=T),]
-        selection = VI_result$variable.name[1:selection.size]
-        tmp_D_selection = data.frame(variable.name = names(X))
-        tmp_D_selection$selection = "rejected"
-        tmp_D_selection[tmp_D_selection$variable.name %in% selection,]$selection = "selected"
-        names(tmp_D_selection) = c("variable.name", paste0("Selections_in_run_", rep))
-        D_selection = merge(D_selection, tmp_D_selection, by="variable.name")
-
-        D_VI = merge(D_VI, VI_result, by="variable.name")
-      }
-
-      # Removing the column with the variable names so that D_VI is a data frame that contains only variable importance estimates
-      D_VI = D_VI[,-1]
-
-      # Removing the column with the IDs so that D_selection is a data frame that contains only the levels "selected" and "not_selected"
-      D_selection = D_selection[,-1]
-
-      tmp_res = data.frame(num.trees = num.trees[i],
-                           VI_stability = icc(D_VI)$value,
-                           selection_stability = kappam.fleiss(D_selection)$value)
-      summary.result = rbind(summary.result, tmp_res)
-    }
+    if(!is.logical(rank_based)) stop("'rank_based' must be TRUE or FALSE.")
+    stability_metric = if(rank_based) "kendall" else "icc"
+    alpha = 0.05
+  } else{
+    importance = "none"
+    alpha = 0.15
   }
-  return(summary.result)
+  
+  # (II) Run the analysis
+  rf_result = .run_rf_engine(y = y, X = X, X_Test = X_Test, method = method,
+                             number_repetitions = number_repetitions,
+                             num.trees_values = num.trees_values,
+                             alpha = alpha, select_for = select_for,
+                             rec_thresh = rec_thresh, stability_metric = stability_metric, 
+                             response_type = response_type, importance = importance, 
+                             verbose = verbose, ...)
+  return(rf_result[[1]])
 }
 
 

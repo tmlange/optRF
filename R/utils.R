@@ -373,7 +373,6 @@ get_target_measure = function(measure, is_pred){
   # (I) Input validation
   
   number_repetitions = number_rep_helper(number_repetitions)
-  rec_thresh = rec_thresh_helper(rec_thresh)
   num.trees_values = num.trees_values_helper(num.trees_values)
   if(nrow(X) != length(y)) stop("Invalid input. Number of rows in 'X' does not match length of 'y'.")
   
@@ -479,4 +478,25 @@ get_target_measure = function(measure, is_pred){
   }
   colnames(summary_result)[2] = ifelse(method == "prediction", "prediction_stability","variable_importance_stability")
   return(list(summary_result, stability_definition))
+}
+
+.postprocess_rf_results = function(rf_result, X, config, visualisation, recommendation, rec_thresh, round_rec, verbose){
+  summary_result = rf_result[[1]]
+  stability_definition = rf_result[[2]]
+  # (I) Visualisation
+  if(visualisation == config$vis_key) create_stability_plot(summary_result[[config$col]], summary_result$num.trees_values, gsub("_", " ", config$col))
+  if(visualisation == "selection") create_stability_plot(summary_result$selection_stability, summary_result$num.trees_values, "selection stability")
+  # (II) Fit stability models
+  predictionStab = NULL
+  selectionStab = NULL
+  if(nrow(summary_result) >= 4){
+    variable_number = round(ncol(X), -2)
+    test_seq = if(variable_number < 100000) seq(10, 1e6, 10) else seq(10, round((variable_number*100), -1), 10)
+    primaryStab = fit_stability_model(summary_result, config$col, test_seq, visualisation == config$vis_key)
+    selectionStab = fit_stability_model(summary_result, "selection_stability", test_seq, visualisation == "selection")
+  }
+  runtime_model = stats::lm(computation_time ~ num.trees_values, data = summary_result)
+  
+  # (II) Prepare the output
+  return(.create_output(method = config$method, stability_definition = stability_definition, result_table = summary_result, primaryStab, selectionStab, runtime_model, rec_thresh, round_rec, recommendation, verbose))
 }
