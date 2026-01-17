@@ -50,16 +50,16 @@ opt_importance = function(y, X, number_repetitions = 10, alpha = 0.05,
   rf_result = .run_rf_engine(y = y, X = X, X_Test = NULL, method = "importance",
                                   number_repetitions = number_repetitions,
                                   num.trees_values = num.trees_values,
-                                  alpha = alpha,
+                                  alpha = alpha, select_for = "high",
                                   rec_thresh = rec_thresh, stability_metric = stability_metric, 
                                   response_type = response_type, importance = importance, 
                                   verbose = verbose, ...)
   summary_result = rf_result[[1]]
-  stability_definiton = rf_result[[2]]
+  stability_definition = rf_result[[2]]
 
   # (III) Fit stability models
   # Optional visualisation
-  if(visualisation == "importance") create_stability_plot(summary_result$VI_stability, summary_result$num.trees_values, "variable importance stability")
+  if(visualisation == "importance") create_stability_plot(summary_result$variable_importance_stability, summary_result$num.trees_values, "variable importance stability")
   if(visualisation == "selection") create_stability_plot(summary_result$selection_stability, summary_result$num.trees_values, "selection stability")
   # If there are more than four data points, fit stability models
   # Create test sequence
@@ -68,11 +68,11 @@ opt_importance = function(y, X, number_repetitions = 10, alpha = 0.05,
   importanceStab = NULL
   selectionStab = NULL
   if(nrow(summary_result) >= 4){
-    importanceStab = fit_stability_model(summary_result, "VI_stability", test_seq, visualisation == "importance")
+    importanceStab = fit_stability_model(summary_result, "variable_importance_stability", test_seq, visualisation == "importance")
     selectionStab = fit_stability_model(summary_result, "selection_stability", test_seq, visualisation == "selection")
   }
   runtime_model = stats::lm(computation_time ~ num.trees_values, data = summary_result)
   
   # (IV) Prepare the output
-  return(.create_output(method = "Variable_importance", stability_definition = stability_definiton, result_table = summary_result, primaryStab = importanceStab, selectionStab, runtime_model, rec_thresh, round_rec, recommendation, verbose))
+  return(.create_output(method = "Variable_importance", stability_definition = stability_definition, result_table = summary_result, primaryStab = importanceStab, selectionStab, runtime_model, rec_thresh, round_rec, recommendation, verbose))
 }

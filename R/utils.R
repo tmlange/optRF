@@ -117,11 +117,11 @@ response_type_helper = function(response_type, y, max_ordinal_levels = 10){
   )
 }
 
-select_for_helper = function(y, response_type, select_for = c("high", "low", "zero"), alpha){
+select_for_helper = function(y, response_type, select_for = c("high", "low", "zero"), alpha, rowCount){
   if(response_type == "metric"){
     # Validate select_for for numeric y
     select_for = match.arg(select_for)
-    if(!is.numeric(alpha) || length(alpha) != 1 || alpha <= 0 || alpha >= length(y)){
+    if(!is.numeric(alpha) || length(alpha) != 1 || alpha <= 0 || alpha >= rowCount){
       stop("For metric responses, 'alpha' must be a single positive number (proportion or count).")
     }
   }
@@ -365,7 +365,7 @@ get_target_measure = function(measure, is_pred){
 .run_rf_engine = function(y, X, X_Test = NULL, method = c("prediction", "importance"),
                          number_repetitions,
                          num.trees_values,
-                         alpha,
+                         alpha, select_for,
                          rec_thresh = 1e-6, stability_metric, 
                          response_type, importance, verbose = TRUE, ...
                          ){
@@ -382,33 +382,101 @@ get_target_measure = function(measure, is_pred){
   y <- response_result$y
   response_type <- response_result$response_type
   
-  # Für prediction -> select_for_helper validiert alpha parameter
-  if(stability_metric == "kendall"){
-    stability_definition = "Kendalls_W"
-  } else{
-    stability_definition = "ICC"
+  if(method == "prediction"){
+    # Verify variables of the test data set
+    if(is.null(X_Test)){
+      if(verbose){
+        message("No test data were entered. Out of bag data will be used.")
+      }
+      rowCount = nrow(X)
+    }
+    else{
+      if(ncol(X) != ncol(X_Test) | !all(colnames(X) %in% colnames(X_Test))){
+        stop("X_Test needs to contain the same variables as X.")
+      }
+      rowCount = nrow(X_Test)
+    }
+    # Check the select_for variable
+    select_for = select_for_helper(y, response_type, select_for, alpha, rowCount)
+    # Check value of stability_metric
+    if(is.null(stability_metric)){
+      if(response_type == "metric") stability_metric = "icc"
+      if(response_type == "ordinal") stability_metric = "krippendorff"
+      if(response_type == "categorical") stability_metric = "fleiss_kappa"
+    } else{
+      stability_metric = match.arg(stability_metric, c("icc", "kendall", "krippendorff", "fleiss_kappa"))
+    }
+    if(response_type == "metric" && stability_metric %in% c("fleiss_kappa")){
+      stop("For metric response, stability_metric must be 'icc', 'kendall' or 'krippendorff'")
+    }
+    if(response_type == "ordinal" && stability_metric %in% c("kendall", "icc")){
+      stop("For ordinal response, stability_metric must be 'krippendorff' or 'fleiss_kappa'")
+    }
+    if(response_type == "categorical" && stability_metric %in% c("icc", "kendall")){
+      stop("For categorical response, stability_metric must be 'fleiss_kappa' or 'krippendorff'")
+    }
+    # Calculate selection_size
+    if(response_type == "metric"){
+      # Defining the number of individuals to be selected from the data set
+      if(alpha < 1){
+        selection_size = round(rowCount*alpha)
+      }
+      else{
+        selection_size = round(alpha)
+      }
+    }
+    # Check if the test data set consists of multiple objects
+    if(rowCount < 2){
+      stop("The test data needs to have at least 2 objects in order to calculate stability.")
+    }
+  } else{ # Importance
+    rowCount = ncol(X)
+    # Determine selection size
+    if(!is.numeric(alpha) || length(alpha) != 1 || alpha <= 0 || alpha >= ncol(X)){
+      stop("'alpha' must be a single positive number (proportion or count)")
+    }
+    selection_size = if(alpha < 1) round(ncol(X)*alpha) else round(alpha)
   }
-  # Determine selection size
-  if(!is.numeric(alpha) || length(alpha) != 1 || alpha <= 0 || alpha >= ncol(X)){
-    stop("'alpha' must be a single positive number (proportion or count)")
-  }
-  selection_size = if(alpha < 1) round(ncol(X)*alpha) else round(alpha)
   
   # (II) Run the analysis
   summary_result = data.frame()
   
   for(num.trees_value in num.trees_values){
-    repeatedResult = .run_rf_repeated(y, X, X_Test = NULL, method = "importance", rowCount = ncol(X), num.trees_value, response_type, importance, number_repetitions, verbose, ...)
-    vi_mat = repeatedResult[["result_mat"]]
+    repeatedResult = .run_rf_repeated(y, X, X_Test = X_Test, method = method, rowCount = rowCount, num.trees_value, response_type, importance, number_repetitions, verbose, ...)
+    result_mat = repeatedResult[["result_mat"]]
     avg_time_taken = repeatedResult[["timeTaken"]]
-    sel_mat = .compute_selection_mat(result_mat = vi_mat, response_type = "metric", select_for = "high", selection_size, alpha = NULL)
-    vi_stability = if(stability_metric == "kendall") irr::kendall(vi_mat)$value else irr::icc(vi_mat)$value
-    sel_stability = irr::kappam.fleiss(sel_mat)$value
+    if(method == "prediction"){
+      sel_mat = .compute_selection_mat(result_mat, response_type, select_for, selection_size, alpha)
+    } else{
+      sel_mat = .compute_selection_mat(result_mat, response_type = "metric", select_for = "high", selection_size, alpha = NULL)  
+    }
+    if(stability_metric == "icc"){
+      result_stability = irr::icc(result_mat)$value
+      stability_definition = "ICC"
+    } else if(stability_metric == "kendall"){
+      result_stability = irr::kendall(result_mat)$value
+      stability_definition = "Kendalls_W"
+    } else if(stability_metric == "fleiss_kappa"){
+      result_stability = irr::kappam.fleiss(result_mat)$value
+      stability_definition = "Fleiss_Kappa"
+    } else{
+      result_mat = t(result_mat)
+      if(response_type == "metric"){
+        result_stability = irr::kripp.alpha(result_mat, method="interval")$value
+      } else if(response_type == "ordinal"){
+        result_stability = irr::kripp.alpha(result_mat, method="ordinal")$value
+      } else{
+        result_stability = irr::kripp.alpha(result_mat, method="nominal")$value
+      }
+      stability_definition = "Krippendorffs_alpha"
+    }
+     
     tmp_res = data.frame(num.trees_values = num.trees_value,
-                         VI_stability = vi_stability,
-                         selection_stability = sel_stability,
+                         primary_stability = result_stability,
+                         selection_stability = irr::kappam.fleiss(sel_mat)$value,
                          computation_time = avg_time_taken)
     summary_result = rbind(summary_result, tmp_res)
   }
+  colnames(summary_result)[2] = ifelse(method == "prediction", "prediction_stability","variable_importance_stability")
   return(list(summary_result, stability_definition))
 }
