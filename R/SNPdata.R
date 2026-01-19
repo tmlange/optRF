@@ -16,8 +16,6 @@
 #' @references This artificial data set was created for the optRF package.
 #' @keywords datasets
 #' @examples
-#'
 #' data(SNPdata)
 #' SNPdata[1:5,1:5]
-#'
 "SNPdata"

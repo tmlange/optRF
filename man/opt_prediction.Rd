@@ -2,7 +2,7 @@
 % Please edit documentation in R/opt_prediction.R
 \name{opt_prediction}
 \alias{opt_prediction}
-\title{Optimise random forest for prediction}
+\title{Optimise random forest predictions}
 \usage{
 opt_prediction(
   y,
@@ -13,9 +13,11 @@ opt_prediction(
   num.trees_values = c(250, 500, 750, 1000, 2000),
   visualisation = c("none", "prediction", "selection"),
   select_for = c("high", "low", "zero"),
-  recommendation = c("prediction", "selection", "none"),
+  recommendation = c("prediction", "selection"),
   rec_thresh = 1e-06,
   round_recommendation = c("thousand", "hundred", "ten", "none"),
+  response_type = NULL,
+  stability_metric = NULL,
   verbose = TRUE,
   ...
 )
@@ -37,15 +39,19 @@ opt_prediction(
 
 \item{select_for}{What should be selected? In random forest classification, this must be set to a vector containing the values of the desired classes. In random forest regression, this can be set as "high" (default) to select the individuals with the highest predicted value, "low" to select the individuals with the lowest predicted value, or "zero" to select the individuals which predicted value is closest to zero.}
 
-\item{recommendation}{If set to "prediction" (default) or "selection", a recommendation will be given based on optimised prediction or selection stability. If set to be "none", the function will analyse the stability of random forest with the inserted numbers of trees without giving a recommendation.}
+\item{recommendation}{If set to "prediction" (default) or "selection", a recommendation will be given based on optimised prediction or selection stability.}
 
 \item{rec_thresh}{If the number of trees leads to an increase of stability smaller or equal to the value specified, this number of trees will be recommended. Default is 1e-6.}
 
 \item{round_recommendation}{Setting to what number the recommended number of trees should be rounded to. Options: "none", "ten", "hundred", "thousand" (default).}
 
+\item{response_type}{What data type is the response variable? Either "metric", "ordinal", or "categorical" are possible. If not set, the data type will be guessed}
+
+\item{stability_metric}{Define the prediction stability metric that should be used. Valid options are "icc", "kendall", or "krippendorff" for a metric response, "fleiss_kappa" or "krippendorff" for a categorical response and "krippendorff" for an ordinal response.}
+
 \item{verbose}{Show computation status}
 
-\item{...}{Any other argument from the ranger function.}
+\item{...}{Any other argument from the ranger or ordfor functions.}
 }
 \value{
 An opt_prediction_object containing the recommended number of trees, based on which measure the recommendation was given (prediction or selection), a matrix summarising the estimated stability and computation time of a random forest with the recommended numbers of trees, a matrix containing the calculated stability and computation time for the analysed numbers of trees, and the parameters used to model the relationship between stability and numbers of trees.

@@ -1,4 +1,4 @@
-#' @title Estimate the required number of trees
+#' @title Estimate the required number of trees to reach a certain stability
 #'
 #' @description Estimate the number of trees required to achieve certain stability of random forest
 #'
@@ -6,7 +6,7 @@
 #' @param for_stability Either a single stability value or a vector containing multiple stability values for which the number of trees should be estimated.
 #' @inheritParams estimate_plot_shared_parameters
 #'
-#' @return A data frame summarising the estimated stability and run time in seconds for the given num.trees values.
+#' @return A data frame summarising the estimated num.trees values and run time in seconds for the given stability values.
 #'
 #' @examples
 #' \dontrun{
@@ -16,105 +16,51 @@
 #' estimate_numtrees(result_optpred, measure="prediction", for_stability=0.95)
 #' }
 #'
-#' @importFrom methods is
-#' @importFrom stats lm
 #' @export
 
 
 estimate_numtrees = function(optRF_object, measure = c("selection","importance","prediction"), for_stability = 0.95){
 
-  if(!(is(optRF_object, "opt_prediction_object")) & !(is(optRF_object, "opt_importance_object"))){
+  if(!inherits(optRF_object, c("opt_prediction_object", "opt_importance_object"))){
     stop("Invalid object was inserted. The inserted object must be the result from the opt_prediction or opt_importance function.")
   }
 
   # Check value of measure
   measure = match.arg(measure)
-
-  if(!is.numeric(for_stability) | any(for_stability < 0)){
-    stop("The for_stability parameter needs to be a vector of positive numbers")
+  is_pred = inherits(optRF_object, "opt_prediction_object")
+  target_measure = get_target_measure(measure, is_pred)
+  
+  # Check value of for_stability
+  if(!is.numeric(for_stability) || any(for_stability < 0) || any(for_stability > 1)){
+    stop("The for_stability parameter needs to be a single positive number or a vector of positive numbers between 0 and 1.")
   }
 
-  runtime_model = lm(optRF_object$result.table$computation_time ~ optRF_object$result.table$num.trees_values)
+  model_params = optRF_object$model_parameters
+  
+  runtime_model = stats::lm(computation_time ~ num.trees_values, data = optRF_object$result_table)
 
-  # estimate RF stability for prediction estimation
-  if(is(optRF_object, "opt_prediction_object")){
-    # If the measure was set to be importance, this will not work
-    if(measure == "importance"){
-      stop("The variable importance stability cannot be plotted with an object created with the function opt_prediction.\nPlease set the measure argument to either \"prediction\" or \"selection\". \n")
-    }
-
-    if(nrow(optRF_object$model.parameters) == 2){ # If a model for prediction and selection could be produced, produce estimates for both measures
-
-      if(measure == "prediction"){
-        opt_numtrees = TwoPLmodel.inv(for_stability, optRF_object$model.parameters[1,1], optRF_object$model.parameters[1,2])
-        D_est = data.frame(prediction_stability = for_stability,
-                           opt_numtrees = ceiling(opt_numtrees),
-                           computation_time = estimate_runtime(opt_numtrees, runtime_model$coefficients[1], runtime_model$coefficients[2]))
-        return(D_est)
-      }
-
-      if(measure == "selection"){
-        opt_numtrees = TwoPLmodel.inv(for_stability, optRF_object$model.parameters[2,1], optRF_object$model.parameters[2,2])
-        D_est = data.frame(selection_stability = for_stability,
-                           opt_numtrees = ceiling(opt_numtrees),
-                           computation_time = estimate_runtime(opt_numtrees, runtime_model$coefficients[1], runtime_model$coefficients[2]))
-        return(D_est)
-      }
-    }
-
-    if(nrow(optRF_object$model.parameters) == 0){ # If no model could be produced, give an error message
-      stop("The function opt_prediction could not model the relationship between the number of trees and prediction or selection stability.\n")
-    }
-
-    if(nrow(optRF_object$model.parameters) == 1){ # If only one model could be produced, estimate only the stability for the measure that could be modelled
-      opt_numtrees = TwoPLmodel.inv(for_stability, optRF_object$model.parameters[1,1], optRF_object$model.parameters[1,2])
-      D_est = data.frame(selection_stability = for_stability,
-                         opt_numtrees = ceiling(opt_numtrees),
-                         computation_time = estimate_runtime(opt_numtrees, runtime_model$coefficients[1], runtime_model$coefficients[2]))
-      if(row.names(optRF_object$model.parameters) == "Prediction_stability"){
-        colnames(D_est)[2] = "prediction_stability"
-      }
-      return(D_est)
-    }
+  # If no model could be produced, give an error message
+  if(is.null(model_params) || nrow(model_params) == 0){ 
+    func_name = ifelse(inherits(optRF_object, "opt_prediction_object"), "opt_prediction", "opt_importance")
+    stop(paste0("The function ", func_name, " could not model the relationship between the number of trees and the stability."))
   }
-  else{ # estimate RF stability for importance estimation
-    # If the measure was set to be importance, this will not work
-    if(measure == "prediction"){
-      stop("The prediction stability cannot be plotted with an object created with the function opt_importance.\nPlease set the measure argument to either \"importance\" or \"selection\". \n")
-    }
-
-    if(nrow(optRF_object$model.parameters) == 2){ # If a model for prediction and selection could be produced, produce estimates for both measures
-
-      if(measure == "importance"){
-        opt_numtrees = TwoPLmodel.inv(for_stability, optRF_object$model.parameters[1,1], optRF_object$model.parameters[1,2])
-        D_est = data.frame(VI_stability = for_stability,
-                           opt_numtrees = ceiling(opt_numtrees),
-                           computation_time = estimate_runtime(opt_numtrees, runtime_model$coefficients[1], runtime_model$coefficients[2]))
-        return(D_est)
-      }
-
-      if(measure == "selection"){
-        opt_numtrees = TwoPLmodel.inv(for_stability, optRF_object$model.parameters[2,1], optRF_object$model.parameters[2,2])
-        D_est = data.frame(selection_stability = for_stability,
-                           opt_numtrees = ceiling(opt_numtrees),
-                           computation_time = estimate_runtime(opt_numtrees, runtime_model$coefficients[1], runtime_model$coefficients[2]))
-        return(D_est)
-      }
-    }
-
-    if(nrow(optRF_object$model.parameters) == 0){ # If no model could be produced, give an error message
-      stop("The function opt_importance could not model the relationship between the number of trees and variable importance or selection stability.\n")
-    }
-
-    if(nrow(optRF_object$model.parameters) == 1){ # If only one model could be produced, estimate only the stability for the measure that could be modelled
-      opt_numtrees = TwoPLmodel.inv(for_stability, optRF_object$model.parameters[1,1], optRF_object$model.parameters[1,2])
-      D_est = data.frame(selection_stability = for_stability,
-                         opt_numtrees = ceiling(opt_numtrees),
-                         computation_time = estimate_runtime(opt_numtrees, runtime_model$coefficients[1], runtime_model$coefficients[2]))
-      if(row.names(optRF_object$model.parameters) == "VI_stability"){
-        colnames(D_est)[2] = "VI_stability"
-      }
-      return(D_est)
-    }
+  
+  # Check if model for selected stability measure exists
+  if(target_measure %in% rownames(model_params)){
+    use_measure = target_measure
+  } else{
+    # Give a warning if the non-selected stability is used for estimation
+    use_measure = rownames(model_params)[1]
+    warning(paste0("The optimal number of trees could not be estimated with the requested '", measure, 
+                   "' stability. Estimation was instead performed using the '", 
+                   gsub("_", "' ", use_measure), "."))
   }
+  
+  # Estimate required number of trees for RF
+  opt_numtrees = TwoPLmodel_inv(for_stability, model_params[use_measure,1], model_params[use_measure,2])
+  D_est = data.frame(stability = for_stability, 
+                     opt_numtrees = ceiling(opt_numtrees),
+                     computation_time = predict(runtime_model, newdata = data.frame(num.trees_values = opt_numtrees)))
+  colnames(D_est)[1] = use_measure
+  return(D_est)
 }
